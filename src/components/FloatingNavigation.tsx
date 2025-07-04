@@ -16,16 +16,17 @@ const FloatingNavigation: React.FC<FloatingNavigationProps> = ({ activeTab, setA
   ];
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white/95 backdrop-blur-lg rounded-full px-6 py-3 shadow-2xl border border-pink-100">
-        <div className="flex items-center space-x-6">
+    <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      {/* Background with blur and border */}
+      <div className="bg-white/95 backdrop-blur-lg border-t border-pink-100 shadow-2xl">
+        <div className="flex items-center justify-around px-2 py-3 safe-area-inset-bottom">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center space-y-1 p-2 rounded-xl transition-all duration-200 ${
+                className={`flex flex-col items-center space-y-1 p-2 rounded-xl transition-all duration-200 min-w-0 flex-1 ${
                   activeTab === item.id
                     ? 'text-white'
                     : 'text-gray-600 hover:text-pink-600'
@@ -38,7 +39,7 @@ const FloatingNavigation: React.FC<FloatingNavigationProps> = ({ activeTab, setA
                 }`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium truncate max-w-full">{item.label}</span>
               </button>
             );
           })}

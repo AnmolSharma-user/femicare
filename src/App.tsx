@@ -169,7 +169,7 @@ function AppContent() {
         )}
 
         {/* Main Content */}
-        <main className={`flex-1 ${isMobile ? 'pb-24' : 'lg:ml-64'} px-4 sm:px-6 lg:px-8 py-4 md:py-8`}>
+        <main className={`flex-1 ${isMobile ? 'pb-20' : 'lg:ml-64'} px-4 sm:px-6 lg:px-8 py-4 md:py-8`}>
           {renderContent()}
         </main>
       </div>
