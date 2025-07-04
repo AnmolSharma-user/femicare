@@ -12,6 +12,7 @@ import {
   deleteProfilePicture
 } from '../utils/supabase';
 import NotificationSetup from './NotificationSetup';
+import ImportDataModal from './ImportDataModal';
 import { scheduleReminders, isNotificationEnabled } from '../utils/notifications';
 
 const SettingsPanel = () => {
@@ -24,6 +25,7 @@ const SettingsPanel = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -273,6 +275,13 @@ const SettingsPanel = () => {
       setSaveMessage('Error exporting data. Please try again.');
       setTimeout(() => setSaveMessage(''), 5000);
     }
+  };
+
+  const handleImportComplete = () => {
+    // Refresh user data after import
+    loadUserData();
+    setSaveMessage('Data imported successfully! Your dashboard will update shortly.');
+    setTimeout(() => setSaveMessage(''), 5000);
   };
 
   const sections = [
@@ -677,12 +686,15 @@ const SettingsPanel = () => {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Import Data</h3>
         <div className="space-y-3">
-          <button className="w-full p-4 bg-purple-50 border border-purple-200 rounded-lg text-left hover:bg-purple-100 transition-colors">
+          <button 
+            onClick={() => setShowImportModal(true)}
+            className="w-full p-4 bg-purple-50 border border-purple-200 rounded-lg text-left hover:bg-purple-100 transition-colors"
+          >
             <div className="flex items-center space-x-3">
               <Upload className="w-5 h-5 text-purple-600" />
               <div>
                 <p className="font-medium text-purple-900">Import from Another App</p>
-                <p className="text-sm text-purple-700">Upload data from other health apps</p>
+                <p className="text-sm text-purple-700">Upload data from other health apps (Clue, Flo, etc.)</p>
               </div>
             </div>
           </button>
@@ -827,6 +839,14 @@ const SettingsPanel = () => {
           </div>
         </div>
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportDataModal
+          onClose={() => setShowImportModal(false)}
+          onImportComplete={handleImportComplete}
+        />
+      )}
     </div>
   );
 };
