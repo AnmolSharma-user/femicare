@@ -12,12 +12,15 @@ import Analytics from './components/Analytics';
 import SettingsPanel from './components/SettingsPanel';
 import FloatingNavigation from './components/FloatingNavigation';
 import Sidebar from './components/Sidebar';
+import NotificationSetup from './components/NotificationSetup';
 import { getUserProfile, getProfilePictureUrl } from './utils/supabase';
+import { initializeNotifications, isNotificationEnabled } from './utils/notifications';
 
 function AppContent() {
   const { user, loading, signOut } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showNotificationSetup, setShowNotificationSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [profile, setProfile] = useState<any>(null);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
@@ -37,8 +40,21 @@ function AppContent() {
     if (user) {
       checkUserProfile();
       loadProfilePicture();
+      initializeAppNotifications();
     }
   }, [user]);
+
+  const initializeAppNotifications = async () => {
+    // Initialize notifications system
+    await initializeNotifications();
+    
+    // Show notification setup if not already enabled and user has completed onboarding
+    setTimeout(() => {
+      if (!isNotificationEnabled() && profile && !showOnboarding) {
+        setShowNotificationSetup(true);
+      }
+    }, 3000); // Show after 3 seconds
+  };
 
   const checkUserProfile = async () => {
     if (!user) return;
@@ -63,6 +79,18 @@ function AppContent() {
     } catch (error) {
       console.error('Error loading profile picture:', error);
     }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    // Refresh profile data after onboarding
+    checkUserProfile();
+    // Show notification setup after onboarding
+    setTimeout(() => {
+      if (!isNotificationEnabled()) {
+        setShowNotificationSetup(true);
+      }
+    }, 1000);
   };
 
   const renderContent = () => {
@@ -110,7 +138,7 @@ function AppContent() {
   }
 
   if (showOnboarding) {
-    return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   return (
@@ -177,6 +205,14 @@ function AppContent() {
       {/* Mobile Floating Navigation */}
       {isMobile && (
         <FloatingNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      )}
+
+      {/* Notification Setup Modal */}
+      {showNotificationSetup && (
+        <NotificationSetup 
+          showAsModal={true}
+          onClose={() => setShowNotificationSetup(false)}
+        />
       )}
     </div>
   );

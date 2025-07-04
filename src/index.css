@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Safe area support for mobile devices */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  
+  .h-safe-bottom {
+    height: env(safe-area-inset-bottom);
+  }
+}
+
+/* Fallback for devices without safe area support */
+.pb-safe {
+  padding-bottom: 0.5rem;
+}
+
+.h-safe-bottom {
+  height: 0;
+}

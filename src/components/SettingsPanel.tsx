@@ -11,6 +11,8 @@ import {
   getProfilePictureUrl,
   deleteProfilePicture
 } from '../utils/supabase';
+import NotificationSetup from './NotificationSetup';
+import { scheduleReminders, isNotificationEnabled } from '../utils/notifications';
 
 const SettingsPanel = () => {
   const { user } = useAuth();
@@ -232,6 +234,11 @@ const SettingsPanel = () => {
       
       if (data) {
         setSettings(data);
+        
+        // Reschedule notifications if they're enabled
+        if (isNotificationEnabled() && profile) {
+          scheduleReminders(profile, data);
+        }
       }
       
       setSaveMessage('Settings updated successfully!');
@@ -418,6 +425,8 @@ const SettingsPanel = () => {
 
   const renderNotificationsSection = () => (
     <div className="space-y-6">
+      <NotificationSetup />
+      
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Period Reminders</h3>
         <div className="space-y-3">
@@ -717,7 +726,7 @@ const SettingsPanel = () => {
   const handleSave = () => {
     if (activeSection === 'profile' || activeSection === 'cycle') {
       handleSaveProfile();
-    } else {
+    } else if (activeSection === 'notifications') {
       handleSaveSettings();
     }
   };
