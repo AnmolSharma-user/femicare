@@ -58,7 +58,7 @@ class NotificationManager {
 
       return true;
     } catch (error) {
-      console.error('Error initializing notifications:', error);
+      console.warn('Error initializing notifications:', error);
       return false;
     }
   }
