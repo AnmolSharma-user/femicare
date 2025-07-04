@@ -153,9 +153,17 @@ export const getUserProfile = async (userId: string) => {
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
-  // Ensure we're updating the correct user and include updated_at
+  // Get the current user to ensure we have the email
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    return { data: null, error: userError || new Error('User not authenticated') };
+  }
+
+  // Ensure we're updating the correct user and include updated_at and email
   const updateData = {
     ...updates,
+    email: user.email, // Always include the email from the authenticated user
     updated_at: new Date().toISOString()
   };
 
