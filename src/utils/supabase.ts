@@ -4,11 +4,53 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command }
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Enhanced validation with better error messages
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('Supabase Configuration Error:', {
+    url: supabaseUrl ? 'Present' : 'Missing',
+    key: supabaseKey ? 'Present' : 'Missing'
+  });
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  console.error('Invalid Supabase URL format:', supabaseUrl);
+  throw new Error('Invalid Supabase URL format. Expected format: https://your-project.supabase.co');
+}
+
+console.log('Supabase Configuration:', {
+  url: supabaseUrl,
+  keyLength: supabaseKey.length
+});
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'apikey': supabaseKey,
+    },
+  },
+});
+
+// Test connection function
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      return { success: false, error: error.message };
+    }
+    console.log('Supabase connection test successful');
+    return { success: true, data };
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 // S3 Client configuration for profile pictures
 const s3Client = new S3Client({
@@ -21,31 +63,70 @@ const s3Client = new S3Client({
   },
 });
 
-// Auth helper functions
+// Enhanced error handling wrapper
+const handleSupabaseError = (operation: string, error: any) => {
+  console.error(`Supabase ${operation} error:`, error);
+  
+  if (error.message?.includes('Failed to fetch')) {
+    return {
+      ...error,
+      message: 'Network connection failed. Please check your internet connection and try again.',
+      code: 'NETWORK_ERROR'
+    };
+  }
+  
+  if (error.message?.includes('Invalid API key')) {
+    return {
+      ...error,
+      message: 'Authentication failed. Please check your Supabase configuration.',
+      code: 'AUTH_ERROR'
+    };
+  }
+  
+  return error;
+};
+
+// Auth helper functions with enhanced error handling
 export const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    return { data, error: error ? handleSupabaseError('signUp', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('signUp', error) };
+  }
 };
 
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { data, error: error ? handleSupabaseError('signIn', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('signIn', error) };
+  }
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    const { error } = await supabase.auth.signOut();
+    return { error: error ? handleSupabaseError('signOut', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('signOut', error) };
+  }
 };
 
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  return { user, error };
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    return { user, error: error ? handleSupabaseError('getCurrentUser', error) : null };
+  } catch (error) {
+    return { user: null, error: handleSupabaseError('getCurrentUser', error) };
+  }
 };
 
 // Profile picture helper functions using S3
@@ -76,7 +157,7 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
     return { data: { path: fileName, publicUrl }, error: null };
   } catch (error) {
     console.error('Upload error:', error);
-    return { data: null, error };
+    return { data: null, error: handleSupabaseError('uploadProfilePicture', error) };
   }
 };
 
@@ -108,7 +189,7 @@ export const getProfilePictureUrl = async (userEmail: string) => {
     return { data: null, error: null };
   } catch (error) {
     console.error('Get profile picture error:', error);
-    return { data: null, error };
+    return { data: null, error: handleSupabaseError('getProfilePictureUrl', error) };
   }
 };
 
@@ -138,553 +219,677 @@ export const deleteProfilePicture = async (userEmail: string) => {
     return { error: null };
   } catch (error) {
     console.error('Delete profile picture error:', error);
-    return { error };
+    return { error: handleSupabaseError('deleteProfilePicture', error) };
   }
 };
 
-// Database helper functions
+// Database helper functions with enhanced error handling
 export const getUserProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return { data, error: error ? handleSupabaseError('getUserProfile', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getUserProfile', error) };
+  }
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
-  // Get the current user to ensure we have the email
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  
-  if (userError || !user) {
-    return { data: null, error: userError || new Error('User not authenticated') };
+  try {
+    // Get the current user to ensure we have the email
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return { data: null, error: handleSupabaseError('updateUserProfile', userError || new Error('User not authenticated')) };
+    }
+
+    // Ensure we're updating the correct user and include updated_at and email
+    const updateData = {
+      ...updates,
+      email: user.email, // Always include the email from the authenticated user
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert(
+        { id: userId, ...updateData },
+        { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        }
+      )
+      .select()
+      .single();
+    
+    return { data, error: error ? handleSupabaseError('updateUserProfile', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateUserProfile', error) };
   }
-
-  // Ensure we're updating the correct user and include updated_at and email
-  const updateData = {
-    ...updates,
-    email: user.email, // Always include the email from the authenticated user
-    updated_at: new Date().toISOString()
-  };
-
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .upsert(
-      { id: userId, ...updateData },
-      { 
-        onConflict: 'id',
-        ignoreDuplicates: false 
-      }
-    )
-    .select()
-    .single();
-  
-  return { data, error };
 };
 
 export const getUserSettings = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return { data, error: error ? handleSupabaseError('getUserSettings', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getUserSettings', error) };
+  }
 };
 
 export const updateUserSettings = async (userId: string, settings: any) => {
-  const { data, error } = await supabase
-    .from('user_settings')
-    .upsert(
-      { user_id: userId, ...settings, updated_at: new Date().toISOString() },
-      { 
-        onConflict: 'user_id',
-        ignoreDuplicates: false 
-      }
-    )
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .upsert(
+        { user_id: userId, ...settings, updated_at: new Date().toISOString() },
+        { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        }
+      )
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateUserSettings', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateUserSettings', error) };
+  }
 };
 
 export const getCycleLogs = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('cycle_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+  try {
+    let query = supabase
+      .from('cycle_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getCycleLogs', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getCycleLogs', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const addCycleLog = async (userId: string, cycleData: any) => {
-  const { data, error } = await supabase
-    .from('cycle_logs')
-    .insert({ 
-      user_id: userId, 
-      ...cycleData,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-  
-  // After adding a cycle log, update the user's last period date
-  if (!error && data) {
-    await updateUserProfile(userId, {
-      last_period_date: cycleData.start_date
-    });
+  try {
+    const { data, error } = await supabase
+      .from('cycle_logs')
+      .insert({ 
+        user_id: userId, 
+        ...cycleData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    // After adding a cycle log, update the user's last period date
+    if (!error && data) {
+      await updateUserProfile(userId, {
+        last_period_date: cycleData.start_date
+      });
+    }
+    
+    return { data, error: error ? handleSupabaseError('addCycleLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addCycleLog', error) };
   }
-  
-  return { data, error };
 };
 
 export const updateCycleLog = async (logId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('cycle_logs')
-    .update(updates)
-    .eq('id', logId)
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('cycle_logs')
+      .update(updates)
+      .eq('id', logId)
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateCycleLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateCycleLog', error) };
+  }
 };
 
 export const deleteCycleLog = async (logId: string) => {
-  const { error } = await supabase
-    .from('cycle_logs')
-    .delete()
-    .eq('id', logId);
-  return { error };
+  try {
+    const { error } = await supabase
+      .from('cycle_logs')
+      .delete()
+      .eq('id', logId);
+    return { error: error ? handleSupabaseError('deleteCycleLog', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('deleteCycleLog', error) };
+  }
 };
 
 // Enhanced symptom logs functions
 export const getEnhancedSymptomLogs = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('symptom_logs_enhanced')
-    .select(`
-      *,
-      symptom_definitions (
-        id,
-        name,
-        description,
-        measurement_type,
-        scale_min,
-        scale_max,
-        scale_labels,
-        symptom_categories (
+  try {
+    let query = supabase
+      .from('symptom_logs_enhanced')
+      .select(`
+        *,
+        symptom_definitions (
           id,
           name,
-          color_code,
-          icon_name
+          description,
+          measurement_type,
+          scale_min,
+          scale_max,
+          scale_labels,
+          symptom_categories (
+            id,
+            name,
+            color_code,
+            icon_name
+          )
         )
-      )
-    `)
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+      `)
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getEnhancedSymptomLogs', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getEnhancedSymptomLogs', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const addEnhancedSymptomLog = async (userId: string, symptomData: any) => {
-  const { data, error } = await supabase
-    .from('symptom_logs_enhanced')
-    .insert({ 
-      user_id: userId, 
-      ...symptomData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .select(`
-      *,
-      symptom_definitions (
-        id,
-        name,
-        description,
-        measurement_type,
-        scale_min,
-        scale_max,
-        scale_labels,
-        symptom_categories (
+  try {
+    const { data, error } = await supabase
+      .from('symptom_logs_enhanced')
+      .insert({ 
+        user_id: userId, 
+        ...symptomData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select(`
+        *,
+        symptom_definitions (
           id,
           name,
-          color_code,
-          icon_name
+          description,
+          measurement_type,
+          scale_min,
+          scale_max,
+          scale_labels,
+          symptom_categories (
+            id,
+            name,
+            color_code,
+            icon_name
+          )
         )
-      )
-    `)
-    .single();
-  return { data, error };
+      `)
+      .single();
+    return { data, error: error ? handleSupabaseError('addEnhancedSymptomLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addEnhancedSymptomLog', error) };
+  }
 };
 
 export const updateEnhancedSymptomLog = async (logId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('symptom_logs_enhanced')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', logId)
-    .select(`
-      *,
-      symptom_definitions (
-        id,
-        name,
-        description,
-        measurement_type,
-        scale_min,
-        scale_max,
-        scale_labels,
-        symptom_categories (
+  try {
+    const { data, error } = await supabase
+      .from('symptom_logs_enhanced')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', logId)
+      .select(`
+        *,
+        symptom_definitions (
           id,
           name,
-          color_code,
-          icon_name
+          description,
+          measurement_type,
+          scale_min,
+          scale_max,
+          scale_labels,
+          symptom_categories (
+            id,
+            name,
+            color_code,
+            icon_name
+          )
         )
-      )
-    `)
-    .single();
-  return { data, error };
+      `)
+      .single();
+    return { data, error: error ? handleSupabaseError('updateEnhancedSymptomLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateEnhancedSymptomLog', error) };
+  }
 };
 
 export const deleteEnhancedSymptomLog = async (logId: string) => {
-  const { error } = await supabase
-    .from('symptom_logs_enhanced')
-    .delete()
-    .eq('id', logId);
-  return { error };
+  try {
+    const { error } = await supabase
+      .from('symptom_logs_enhanced')
+      .delete()
+      .eq('id', logId);
+    return { error: error ? handleSupabaseError('deleteEnhancedSymptomLog', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('deleteEnhancedSymptomLog', error) };
+  }
 };
 
 // Symptom categories and definitions
 export const getSymptomCategories = async () => {
-  const { data, error } = await supabase
-    .from('symptom_categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('symptom_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    return { data, error: error ? handleSupabaseError('getSymptomCategories', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getSymptomCategories', error) };
+  }
 };
 
 export const getSymptomDefinitions = async (categoryId?: string) => {
-  let query = supabase
-    .from('symptom_definitions')
-    .select(`
-      *,
-      symptom_categories (
-        id,
-        name,
-        color_code,
-        icon_name
-      )
-    `)
-    .eq('is_active', true);
-  
-  if (categoryId) {
-    query = query.eq('category_id', categoryId);
+  try {
+    let query = supabase
+      .from('symptom_definitions')
+      .select(`
+        *,
+        symptom_categories (
+          id,
+          name,
+          color_code,
+          icon_name
+        )
+      `)
+      .eq('is_active', true);
+    
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getSymptomDefinitions', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getSymptomDefinitions', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 // Legacy symptom logs functions (keeping for backward compatibility)
 export const getSymptomLogs = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('symptom_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+  try {
+    let query = supabase
+      .from('symptom_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getSymptomLogs', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getSymptomLogs', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const addSymptomLog = async (userId: string, symptomData: any) => {
-  const { data, error } = await supabase
-    .from('symptom_logs')
-    .insert({ 
-      user_id: userId, 
-      ...symptomData,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('symptom_logs')
+      .insert({ 
+        user_id: userId, 
+        ...symptomData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('addSymptomLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addSymptomLog', error) };
+  }
 };
 
 export const updateSymptomLog = async (logId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('symptom_logs')
-    .update(updates)
-    .eq('id', logId)
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('symptom_logs')
+      .update(updates)
+      .eq('id', logId)
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateSymptomLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateSymptomLog', error) };
+  }
 };
 
 export const deleteSymptomLog = async (logId: string) => {
-  const { error } = await supabase
-    .from('symptom_logs')
-    .delete()
-    .eq('id', logId);
-  return { error };
+  try {
+    const { error } = await supabase
+      .from('symptom_logs')
+      .delete()
+      .eq('id', logId);
+    return { error: error ? handleSupabaseError('deleteSymptomLog', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('deleteSymptomLog', error) };
+  }
 };
 
 export const getMoodLogs = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('mood_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+  try {
+    let query = supabase
+      .from('mood_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getMoodLogs', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getMoodLogs', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const addMoodLog = async (userId: string, moodData: any) => {
-  const { data, error } = await supabase
-    .from('mood_logs')
-    .insert({ 
-      user_id: userId, 
-      ...moodData,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .insert({ 
+        user_id: userId, 
+        ...moodData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('addMoodLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addMoodLog', error) };
+  }
 };
 
 export const updateMoodLog = async (logId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('mood_logs')
-    .update(updates)
-    .eq('id', logId)
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .update(updates)
+      .eq('id', logId)
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateMoodLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateMoodLog', error) };
+  }
 };
 
 export const deleteMoodLog = async (logId: string) => {
-  const { error } = await supabase
-    .from('mood_logs')
-    .delete()
-    .eq('id', logId);
-  return { error };
+  try {
+    const { error } = await supabase
+      .from('mood_logs')
+      .delete()
+      .eq('id', logId);
+    return { error: error ? handleSupabaseError('deleteMoodLog', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('deleteMoodLog', error) };
+  }
 };
 
 export const getFertilityLogs = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('fertility_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+  try {
+    let query = supabase
+      .from('fertility_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getFertilityLogs', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getFertilityLogs', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const addFertilityLog = async (userId: string, fertilityData: any) => {
-  const { data, error } = await supabase
-    .from('fertility_logs')
-    .insert({ 
-      user_id: userId, 
-      ...fertilityData,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('fertility_logs')
+      .insert({ 
+        user_id: userId, 
+        ...fertilityData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('addFertilityLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addFertilityLog', error) };
+  }
 };
 
 export const updateFertilityLog = async (logId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('fertility_logs')
-    .update(updates)
-    .eq('id', logId)
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('fertility_logs')
+      .update(updates)
+      .eq('id', logId)
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateFertilityLog', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateFertilityLog', error) };
+  }
 };
 
 export const deleteFertilityLog = async (logId: string) => {
-  const { error } = await supabase
-    .from('fertility_logs')
-    .delete()
-    .eq('id', logId);
-  return { error };
+  try {
+    const { error } = await supabase
+      .from('fertility_logs')
+      .delete()
+      .eq('id', logId);
+    return { error: error ? handleSupabaseError('deleteFertilityLog', error) : null };
+  } catch (error) {
+    return { error: handleSupabaseError('deleteFertilityLog', error) };
+  }
 };
 
 export const getUserInsights = async (userId: string, limit?: number) => {
-  let query = supabase
-    .from('user_insights')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
+  try {
+    let query = supabase
+      .from('user_insights')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    return { data, error: error ? handleSupabaseError('getUserInsights', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getUserInsights', error) };
   }
-  
-  const { data, error } = await query;
-  return { data, error };
 };
 
 export const markInsightAsRead = async (insightId: string) => {
-  const { data, error } = await supabase
-    .from('user_insights')
-    .update({ is_read: true })
-    .eq('id', insightId)
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('user_insights')
+      .update({ is_read: true })
+      .eq('id', insightId)
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('markInsightAsRead', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('markInsightAsRead', error) };
+  }
 };
 
 export const addUserInsight = async (userId: string, insightData: any) => {
-  const { data, error } = await supabase
-    .from('user_insights')
-    .insert({ 
-      user_id: userId, 
-      ...insightData,
-      created_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-  return { data, error };
+  try {
+    const { data, error } = await supabase
+      .from('user_insights')
+      .insert({ 
+        user_id: userId, 
+        ...insightData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('addUserInsight', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('addUserInsight', error) };
+  }
 };
 
 // Advanced Analytics Functions with Real-time Data
 export const getCycleAnalytics = async (userId: string) => {
-  const { data: cycles, error } = await supabase
-    .from('cycle_logs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false })
-    .limit(12);
+  try {
+    const { data: cycles, error } = await supabase
+      .from('cycle_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false })
+      .limit(12);
 
-  if (error) return { data: null, error };
+    if (error) return { data: null, error: handleSupabaseError('getCycleAnalytics', error) };
 
-  const cycleLengths = cycles.filter(c => c.cycle_length).map(c => c.cycle_length);
-  const periodLengths = cycles.filter(c => c.period_length).map(c => c.period_length);
-  
-  const avgCycleLength = cycleLengths.length > 0 
-    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
-    : 28;
+    const cycleLengths = cycles.filter(c => c.cycle_length).map(c => c.cycle_length);
+    const periodLengths = cycles.filter(c => c.period_length).map(c => c.period_length);
     
-  const avgPeriodLength = periodLengths.length > 0 
-    ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
-    : 5;
+    const avgCycleLength = cycleLengths.length > 0 
+      ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
+      : 28;
+      
+    const avgPeriodLength = periodLengths.length > 0 
+      ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
+      : 5;
 
-  // Calculate regularity based on standard deviation
-  let regularity = 95;
-  if (cycleLengths.length > 1) {
-    const mean = cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length;
-    const variance = cycleLengths.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / cycleLengths.length;
-    const stdDev = Math.sqrt(variance);
-    
-    // Convert standard deviation to regularity percentage
-    regularity = Math.max(0, Math.min(100, 100 - (stdDev * 10)));
+    // Calculate regularity based on standard deviation
+    let regularity = 95;
+    if (cycleLengths.length > 1) {
+      const mean = cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length;
+      const variance = cycleLengths.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / cycleLengths.length;
+      const stdDev = Math.sqrt(variance);
+      
+      // Convert standard deviation to regularity percentage
+      regularity = Math.max(0, Math.min(100, 100 - (stdDev * 10)));
+    }
+
+    return {
+      data: {
+        averageCycleLength: avgCycleLength,
+        averagePeriodLength: avgPeriodLength,
+        regularity: Math.round(regularity),
+        totalCycles: cycles.length,
+        recentCycles: cycleLengths.slice(0, 3),
+        cycleHistory: cycles.map(c => ({
+          date: c.start_date,
+          length: c.cycle_length,
+          periodLength: c.period_length,
+          flowIntensity: c.flow_intensity
+        }))
+      },
+      error: null
+    };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getCycleAnalytics', error) };
   }
-
-  return {
-    data: {
-      averageCycleLength: avgCycleLength,
-      averagePeriodLength: avgPeriodLength,
-      regularity: Math.round(regularity),
-      totalCycles: cycles.length,
-      recentCycles: cycleLengths.slice(0, 3),
-      cycleHistory: cycles.map(c => ({
-        date: c.start_date,
-        length: c.cycle_length,
-        periodLength: c.period_length,
-        flowIntensity: c.flow_intensity
-      }))
-    },
-    error: null
-  };
 };
 
 export const getSymptomAnalytics = async (userId: string) => {
-  const { data: symptoms, error } = await supabase
-    .from('symptom_logs_enhanced')
-    .select(`
-      *,
-      symptom_definitions (
-        id,
-        name,
-        symptom_categories (
-          name
+  try {
+    const { data: symptoms, error } = await supabase
+      .from('symptom_logs_enhanced')
+      .select(`
+        *,
+        symptom_definitions (
+          id,
+          name,
+          symptom_categories (
+            name
+          )
         )
-      )
-    `)
-    .eq('user_id', userId)
-    .gte('date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-    .order('date', { ascending: false });
+      `)
+      .eq('user_id', userId)
+      .gte('date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .order('date', { ascending: false });
 
-  if (error) return { data: null, error };
+    if (error) return { data: null, error: handleSupabaseError('getSymptomAnalytics', error) };
 
-  const symptomCounts = {};
-  const severityCounts = { mild: 0, moderate: 0, severe: 0 };
-  const categoryCounts = {};
-  const cyclePhaseSymptoms = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
-  const dailySymptoms = {};
+    const symptomCounts = {};
+    const severityCounts = { mild: 0, moderate: 0, severe: 0 };
+    const categoryCounts = {};
+    const cyclePhaseSymptoms = { menstrual: 0, follicular: 0, ovulation: 0, luteal: 0 };
+    const dailySymptoms = {};
 
-  symptoms.forEach(symptom => {
-    const symptomName = symptom.symptom_definitions?.name || 'Unknown';
-    const categoryName = symptom.symptom_definitions?.symptom_categories?.name || 'Other';
-    
-    symptomCounts[symptomName] = (symptomCounts[symptomName] || 0) + 1;
-    categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
-    
-    if (symptom.menstrual_phase) {
-      cyclePhaseSymptoms[symptom.menstrual_phase] = (cyclePhaseSymptoms[symptom.menstrual_phase] || 0) + 1;
-    }
-    
-    const dateKey = symptom.date;
-    dailySymptoms[dateKey] = (dailySymptoms[dateKey] || 0) + 1;
-    
-    if (symptom.severity_level) {
-      if (symptom.severity_level <= 3) severityCounts.mild++;
-      else if (symptom.severity_level <= 6) severityCounts.moderate++;
-      else severityCounts.severe++;
-    }
-  });
+    symptoms.forEach(symptom => {
+      const symptomName = symptom.symptom_definitions?.name || 'Unknown';
+      const categoryName = symptom.symptom_definitions?.symptom_categories?.name || 'Other';
+      
+      symptomCounts[symptomName] = (symptomCounts[symptomName] || 0) + 1;
+      categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
+      
+      if (symptom.menstrual_phase) {
+        cyclePhaseSymptoms[symptom.menstrual_phase] = (cyclePhaseSymptoms[symptom.menstrual_phase] || 0) + 1;
+      }
+      
+      const dateKey = symptom.date;
+      dailySymptoms[dateKey] = (dailySymptoms[dateKey] || 0) + 1;
+      
+      if (symptom.severity_level) {
+        if (symptom.severity_level <= 3) severityCounts.mild++;
+        else if (symptom.severity_level <= 6) severityCounts.moderate++;
+        else severityCounts.severe++;
+      }
+    });
 
-  const mostCommon = Object.entries(symptomCounts)
-    .sort(([,a], [,b]) => (b as number) - (a as number))
-    .slice(0, 5)
-    .map(([symptom, count]) => ({
-      symptom,
-      frequency: Math.round(((count as number) / symptoms.length) * 100)
-    }));
+    const mostCommon = Object.entries(symptomCounts)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, 5)
+      .map(([symptom, count]) => ({
+        symptom,
+        frequency: Math.round(((count as number) / symptoms.length) * 100)
+      }));
 
-  return {
-    data: {
-      totalLogs: symptoms.length,
-      mostCommonSymptoms: mostCommon,
-      severityDistribution: severityCounts,
-      categoryDistribution: categoryCounts,
-      cyclePhaseDistribution: cyclePhaseSymptoms,
-      dailySymptomCounts: dailySymptoms,
-      categoriesUsed: Object.keys(categoryCounts).length
-    },
-    error: null
-  };
+    return {
+      data: {
+        totalLogs: symptoms.length,
+        mostCommonSymptoms: mostCommon,
+        severityDistribution: severityCounts,
+        categoryDistribution: categoryCounts,
+        cyclePhaseDistribution: cyclePhaseSymptoms,
+        dailySymptomCounts: dailySymptoms,
+        categoriesUsed: Object.keys(categoryCounts).length
+      },
+      error: null
+    };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getSymptomAnalytics', error) };
+  }
 };
 
 export const getAdvancedAnalytics = async (userId: string) => {
@@ -727,7 +932,7 @@ export const getAdvancedAnalytics = async (userId: string) => {
       error: null
     };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: handleSupabaseError('getAdvancedAnalytics', error) };
   }
 };
 
@@ -823,7 +1028,7 @@ export const exportUserData = async (userId: string, format: 'json' | 'csv' = 'j
 
     return { data: exportData, error: null };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: handleSupabaseError('exportUserData', error) };
   }
 };
 
@@ -847,6 +1052,6 @@ export const refreshUserData = async (userId: string) => {
       error: null
     };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: handleSupabaseError('refreshUserData', error) };
   }
 };
