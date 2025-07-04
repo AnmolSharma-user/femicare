@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -8,6 +9,17 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// S3 Client configuration for profile pictures
+const s3Client = new S3Client({
+  forcePathStyle: true,
+  region: 'ap-south-1',
+  endpoint: 'https://vbrvgacnjyxkrfclixbm.supabase.co/storage/v1/s3',
+  credentials: {
+    accessKeyId: '349c240eef446eb597f6b15a8be98780',
+    secretAccessKey: '72aeb5fd5215c07ee601c0191afe091eab17b376fb2dbfc98c798a50b8e92218',
+  },
+});
 
 // Auth helper functions
 export const signUp = async (email: string, password: string) => {
@@ -36,100 +48,96 @@ export const getCurrentUser = async () => {
   return { user, error };
 };
 
-// Profile picture helper functions
+// Profile picture helper functions using S3
 export const uploadProfilePicture = async (file: File, userEmail: string) => {
   try {
     // Create a unique filename using user email and timestamp
     const fileExt = file.name.split('.').pop();
     const fileName = `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${fileExt}`;
     
-    // Upload file to the profile-picture bucket
-    const { data, error } = await supabase.storage
-      .from('profile-picture')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    
+    // Upload file to the profile-picture bucket using S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: 'profile-picture',
+      Key: fileName,
+      Body: buffer,
+      ContentType: file.type,
+      CacheControl: '3600',
+    });
 
-    if (error) {
-      throw error;
-    }
+    await s3Client.send(uploadCommand);
 
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('profile-picture')
-      .getPublicUrl(fileName);
+    // Construct the public URL
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/profile-picture/${fileName}`;
 
-    return { data: { path: data.path, publicUrl }, error: null };
+    return { data: { path: fileName, publicUrl }, error: null };
   } catch (error) {
+    console.error('Upload error:', error);
     return { data: null, error };
   }
 };
 
 export const getProfilePictureUrl = async (userEmail: string) => {
   try {
-    // List files for this user
-    const { data, error } = await supabase.storage
-      .from('profile-picture')
-      .list('', {
-        limit: 100,
-        offset: 0,
+    // List files for this user using S3
+    const listCommand = new ListObjectsV2Command({
+      Bucket: 'profile-picture',
+      Prefix: userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+    });
+
+    const response = await s3Client.send(listCommand);
+
+    if (response.Contents && response.Contents.length > 0) {
+      // Sort by last modified date to get the most recent file
+      const sortedFiles = response.Contents.sort((a, b) => {
+        const dateA = a.LastModified ? new Date(a.LastModified).getTime() : 0;
+        const dateB = b.LastModified ? new Date(b.LastModified).getTime() : 0;
+        return dateB - dateA;
       });
 
-    if (error) {
-      throw error;
-    }
-
-    // Find the most recent file for this user
-    const userFiles = data
-      .filter(file => file.name.startsWith(userEmail.replace(/[^a-zA-Z0-9]/g, '_')))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    if (userFiles.length > 0) {
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-picture')
-        .getPublicUrl(userFiles[0].name);
-      
-      return { data: publicUrl, error: null };
+      const mostRecentFile = sortedFiles[0];
+      if (mostRecentFile.Key) {
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/profile-picture/${mostRecentFile.Key}`;
+        return { data: publicUrl, error: null };
+      }
     }
 
     return { data: null, error: null };
   } catch (error) {
+    console.error('Get profile picture error:', error);
     return { data: null, error };
   }
 };
 
 export const deleteProfilePicture = async (userEmail: string) => {
   try {
-    // List files for this user
-    const { data, error } = await supabase.storage
-      .from('profile-picture')
-      .list('', {
-        limit: 100,
-        offset: 0,
-      });
+    // List files for this user using S3
+    const listCommand = new ListObjectsV2Command({
+      Bucket: 'profile-picture',
+      Prefix: userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+    });
 
-    if (error) {
-      throw error;
-    }
+    const response = await s3Client.send(listCommand);
 
-    // Find all files for this user
-    const userFiles = data
-      .filter(file => file.name.startsWith(userEmail.replace(/[^a-zA-Z0-9]/g, '_')))
-      .map(file => file.name);
-
-    if (userFiles.length > 0) {
-      const { error: deleteError } = await supabase.storage
-        .from('profile-picture')
-        .remove(userFiles);
-
-      if (deleteError) {
-        throw deleteError;
+    if (response.Contents && response.Contents.length > 0) {
+      // Delete all files for this user
+      for (const file of response.Contents) {
+        if (file.Key) {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: 'profile-picture',
+            Key: file.Key,
+          });
+          await s3Client.send(deleteCommand);
+        }
       }
     }
 
     return { error: null };
   } catch (error) {
+    console.error('Delete profile picture error:', error);
     return { error };
   }
 };
