@@ -13,6 +13,7 @@ import SettingsPanel from './components/SettingsPanel';
 import FloatingNavigation from './components/FloatingNavigation';
 import Sidebar from './components/Sidebar';
 import NotificationSetup from './components/NotificationSetup';
+import NotificationTest from './components/NotificationTest';
 import { getUserProfile, getProfilePictureUrl } from './utils/supabase';
 import { initializeNotifications, isNotificationEnabled } from './utils/notifications';
 
@@ -107,6 +108,8 @@ function AppContent() {
         return <Analytics />;
       case 'settings':
         return <SettingsPanel />;
+      case 'notification-test':
+        return <NotificationTest />;
       default:
         return <Dashboard />;
     }
@@ -178,6 +181,15 @@ function AppContent() {
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
+              
+              {/* Debug: Add notification test button */}
+              <button
+                onClick={() => setActiveTab('notification-test')}
+                className="hidden md:block px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+              >
+                Test Notifications
+              </button>
+              
               <button
                 onClick={signOut}
                 className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
