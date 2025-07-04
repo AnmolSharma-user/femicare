@@ -27,6 +27,25 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
     });
   };
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+      return 'Password must contain at least one special character';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -38,8 +57,9 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }
@@ -54,6 +74,20 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
     
     setLoading(false);
   };
+
+  const getPasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/(?=.*[a-z])/.test(password)) strength++;
+    if (/(?=.*[A-Z])/.test(password)) strength++;
+    if (/(?=.*\d)/.test(password)) strength++;
+    if (/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) strength++;
+    return strength;
+  };
+
+  const passwordStrength = getPasswordStrength(formData.password);
+  const strengthColors = ['bg-red-500', 'bg-red-400', 'bg-yellow-500', 'bg-yellow-400', 'bg-green-500'];
+  const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center p-4">
@@ -160,6 +194,47 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
+              </div>
+              
+              {/* Password Strength Indicator */}
+              {formData.password && (
+                <div className="mt-2">
+                  <div className="flex space-x-1 mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded ${
+                          i < passwordStrength ? strengthColors[passwordStrength - 1] : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Password strength: {passwordStrength > 0 ? strengthLabels[passwordStrength - 1] : 'Too weak'}
+                  </p>
+                </div>
+              )}
+
+              {/* Password Requirements */}
+              <div className="mt-2 text-xs text-gray-500 space-y-1">
+                <p>Password must contain:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li className={formData.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
+                    At least 8 characters
+                  </li>
+                  <li className={/(?=.*[a-z])/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}>
+                    One lowercase letter
+                  </li>
+                  <li className={/(?=.*[A-Z])/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}>
+                    One uppercase letter
+                  </li>
+                  <li className={/(?=.*\d)/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}>
+                    One number
+                  </li>
+                  <li className={/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}>
+                    One special character
+                  </li>
+                </ul>
               </div>
             </div>
 
