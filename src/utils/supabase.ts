@@ -153,12 +153,24 @@ export const getUserProfile = async (userId: string) => {
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
+  // Ensure we're updating the correct user and include updated_at
+  const updateData = {
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+
   const { data, error } = await supabase
     .from('user_profiles')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', userId)
+    .upsert(
+      { id: userId, ...updateData },
+      { 
+        onConflict: 'id',
+        ignoreDuplicates: false 
+      }
+    )
     .select()
     .single();
+  
   return { data, error };
 };
 
@@ -174,8 +186,13 @@ export const getUserSettings = async (userId: string) => {
 export const updateUserSettings = async (userId: string, settings: any) => {
   const { data, error } = await supabase
     .from('user_settings')
-    .update({ ...settings, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
+    .upsert(
+      { user_id: userId, ...settings, updated_at: new Date().toISOString() },
+      { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false 
+      }
+    )
     .select()
     .single();
   return { data, error };
@@ -199,9 +216,21 @@ export const getCycleLogs = async (userId: string, limit?: number) => {
 export const addCycleLog = async (userId: string, cycleData: any) => {
   const { data, error } = await supabase
     .from('cycle_logs')
-    .insert({ user_id: userId, ...cycleData })
+    .insert({ 
+      user_id: userId, 
+      ...cycleData,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single();
+  
+  // After adding a cycle log, update the user's last period date
+  if (!error && data) {
+    await updateUserProfile(userId, {
+      last_period_date: cycleData.start_date
+    });
+  }
+  
   return { data, error };
 };
 
@@ -259,7 +288,12 @@ export const getEnhancedSymptomLogs = async (userId: string, limit?: number) => 
 export const addEnhancedSymptomLog = async (userId: string, symptomData: any) => {
   const { data, error } = await supabase
     .from('symptom_logs_enhanced')
-    .insert({ user_id: userId, ...symptomData })
+    .insert({ 
+      user_id: userId, 
+      ...symptomData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
     .select(`
       *,
       symptom_definitions (
@@ -368,7 +402,11 @@ export const getSymptomLogs = async (userId: string, limit?: number) => {
 export const addSymptomLog = async (userId: string, symptomData: any) => {
   const { data, error } = await supabase
     .from('symptom_logs')
-    .insert({ user_id: userId, ...symptomData })
+    .insert({ 
+      user_id: userId, 
+      ...symptomData,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single();
   return { data, error };
@@ -410,7 +448,11 @@ export const getMoodLogs = async (userId: string, limit?: number) => {
 export const addMoodLog = async (userId: string, moodData: any) => {
   const { data, error } = await supabase
     .from('mood_logs')
-    .insert({ user_id: userId, ...moodData })
+    .insert({ 
+      user_id: userId, 
+      ...moodData,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single();
   return { data, error };
@@ -452,7 +494,11 @@ export const getFertilityLogs = async (userId: string, limit?: number) => {
 export const addFertilityLog = async (userId: string, fertilityData: any) => {
   const { data, error } = await supabase
     .from('fertility_logs')
-    .insert({ user_id: userId, ...fertilityData })
+    .insert({ 
+      user_id: userId, 
+      ...fertilityData,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single();
   return { data, error };
@@ -504,13 +550,17 @@ export const markInsightAsRead = async (insightId: string) => {
 export const addUserInsight = async (userId: string, insightData: any) => {
   const { data, error } = await supabase
     .from('user_insights')
-    .insert({ user_id: userId, ...insightData })
+    .insert({ 
+      user_id: userId, 
+      ...insightData,
+      created_at: new Date().toISOString()
+    })
     .select()
     .single();
   return { data, error };
 };
 
-// Advanced Analytics Functions
+// Advanced Analytics Functions with Real-time Data
 export const getCycleAnalytics = async (userId: string) => {
   const { data: cycles, error } = await supabase
     .from('cycle_logs')
@@ -525,21 +575,28 @@ export const getCycleAnalytics = async (userId: string) => {
   const periodLengths = cycles.filter(c => c.period_length).map(c => c.period_length);
   
   const avgCycleLength = cycleLengths.length > 0 
-    ? cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length 
+    ? Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
     : 28;
     
   const avgPeriodLength = periodLengths.length > 0 
-    ? periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length 
+    ? Math.round(periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length)
     : 5;
 
-  const regularity = cycleLengths.length > 1 
-    ? Math.max(0, 100 - (Math.abs(Math.max(...cycleLengths) - Math.min(...cycleLengths)) * 5))
-    : 95;
+  // Calculate regularity based on standard deviation
+  let regularity = 95;
+  if (cycleLengths.length > 1) {
+    const mean = cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length;
+    const variance = cycleLengths.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / cycleLengths.length;
+    const stdDev = Math.sqrt(variance);
+    
+    // Convert standard deviation to regularity percentage
+    regularity = Math.max(0, Math.min(100, 100 - (stdDev * 10)));
+  }
 
   return {
     data: {
-      averageCycleLength: Math.round(avgCycleLength),
-      averagePeriodLength: Math.round(avgPeriodLength),
+      averageCycleLength: avgCycleLength,
+      averagePeriodLength: avgPeriodLength,
       regularity: Math.round(regularity),
       totalCycles: cycles.length,
       recentCycles: cycleLengths.slice(0, 3),
@@ -601,11 +658,11 @@ export const getSymptomAnalytics = async (userId: string) => {
   });
 
   const mostCommon = Object.entries(symptomCounts)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
     .slice(0, 5)
     .map(([symptom, count]) => ({
       symptom,
-      frequency: Math.round((count / symptoms.length) * 100)
+      frequency: Math.round(((count as number) / symptoms.length) * 100)
     }));
 
   return {
@@ -624,15 +681,17 @@ export const getSymptomAnalytics = async (userId: string) => {
 
 export const getAdvancedAnalytics = async (userId: string) => {
   try {
-    const [cycleResult, symptomResult, moodResult] = await Promise.all([
+    const [cycleResult, symptomResult, moodResult, profileResult] = await Promise.all([
       getCycleAnalytics(userId),
       getSymptomAnalytics(userId),
-      getMoodLogs(userId, 30)
+      getMoodLogs(userId, 30),
+      getUserProfile(userId)
     ]);
 
     const cycles = cycleResult.data;
     const symptoms = symptomResult.data;
     const moods = moodResult.data || [];
+    const profile = profileResult.data;
 
     // Calculate mood trends
     const moodTrends = moods.reduce((acc, mood) => {
@@ -646,18 +705,14 @@ export const getAdvancedAnalytics = async (userId: string) => {
       return acc;
     }, {});
 
-    // Calculate correlations
-    const correlations = calculateSymptomCorrelations(symptoms);
-
-    // Generate predictions
-    const predictions = generatePredictions(cycles, symptoms);
+    // Generate real-time predictions based on actual data
+    const predictions = generateRealTimePredictions(profile, cycles, symptoms);
 
     return {
       data: {
         cycles,
         symptoms,
         moodTrends,
-        correlations,
         predictions,
         wellnessScore: calculateWellnessScore(cycles, symptoms, moods)
       },
@@ -668,40 +723,44 @@ export const getAdvancedAnalytics = async (userId: string) => {
   }
 };
 
-// Helper functions for advanced analytics
-const calculateSymptomCorrelations = (symptomsData: any) => {
-  if (!symptomsData || !symptomsData.dailySymptomCounts) return [];
+// Enhanced prediction algorithm
+const generateRealTimePredictions = (profile: any, cycles: any, symptoms: any) => {
+  if (!profile || !profile.last_period_date) return null;
   
-  // Simplified correlation calculation
-  const dates = Object.keys(symptomsData.dailySymptomCounts);
-  const correlations = [];
+  const lastPeriodDate = new Date(profile.last_period_date);
+  const today = new Date();
+  const daysSinceLastPeriod = Math.floor((today.getTime() - lastPeriodDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  // Example correlation: stress and symptom frequency
-  dates.forEach(date => {
-    const symptomCount = symptomsData.dailySymptomCounts[date];
-    correlations.push({
-      date,
-      symptomCount,
-      correlation: Math.random() * 0.8 + 0.2 // Placeholder for real correlation
-    });
-  });
+  // Use actual cycle length from profile or calculated average
+  const cycleLength = cycles?.averageCycleLength || profile.average_cycle_length || 28;
+  const periodLength = cycles?.averagePeriodLength || profile.average_period_length || 5;
   
-  return correlations;
-};
-
-const generatePredictions = (cycles: any, symptoms: any) => {
-  if (!cycles || !cycles.averageCycleLength) return null;
+  // Calculate next period date
+  const nextPeriodDate = new Date(lastPeriodDate);
+  nextPeriodDate.setDate(lastPeriodDate.getDate() + cycleLength);
   
-  const nextPeriodDate = new Date();
-  nextPeriodDate.setDate(nextPeriodDate.getDate() + cycles.averageCycleLength);
+  // Calculate ovulation window (typically 14 days before next period)
+  const ovulationDate = new Date(nextPeriodDate);
+  ovulationDate.setDate(nextPeriodDate.getDate() - 14);
+  
+  const fertilityStart = new Date(ovulationDate);
+  fertilityStart.setDate(ovulationDate.getDate() - 5);
+  
+  const fertilityEnd = new Date(ovulationDate);
+  fertilityEnd.setDate(ovulationDate.getDate() + 1);
+  
+  // Calculate confidence based on cycle regularity
+  const confidence = cycles?.regularity || 85;
   
   return {
     nextPeriod: nextPeriodDate.toISOString().split('T')[0],
-    confidence: cycles.regularity,
+    confidence: confidence,
     ovulationWindow: {
-      start: new Date(nextPeriodDate.getTime() - (cycles.averageCycleLength - 14) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      end: new Date(nextPeriodDate.getTime() - (cycles.averageCycleLength - 12) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    }
+      start: fertilityStart.toISOString().split('T')[0],
+      end: fertilityEnd.toISOString().split('T')[0]
+    },
+    currentCycleDay: daysSinceLastPeriod + 1,
+    daysUntilNextPeriod: Math.max(0, Math.ceil((nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
   };
 };
 
@@ -755,6 +814,30 @@ export const exportUserData = async (userId: string, format: 'json' | 'csv' = 'j
     }
 
     return { data: exportData, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
+// Real-time data refresh helper
+export const refreshUserData = async (userId: string) => {
+  try {
+    const [profile, cycles, symptoms, moods, analytics] = await Promise.all([
+      getUserProfile(userId),
+      getCycleLogs(userId, 6),
+      getEnhancedSymptomLogs(userId, 20),
+      getMoodLogs(userId, 10),
+      getAdvancedAnalytics(userId)
+    ]);
+
+    return {
+      profile: profile.data,
+      cycles: cycles.data,
+      symptoms: symptoms.data,
+      moods: moods.data,
+      analytics: analytics.data,
+      error: null
+    };
   } catch (error) {
     return { data: null, error };
   }

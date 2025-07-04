@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface OnboardingData {
   personalInfo: {
+    firstName: string;
+    lastName: string;
     dateOfBirth: string;
     height: string;
     weight: string;
@@ -34,6 +36,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     personalInfo: {
+      firstName: '',
+      lastName: '',
       dateOfBirth: '',
       height: '',
       weight: ''
@@ -151,20 +155,30 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
     
     try {
       const profileData = {
-        date_of_birth: data.personalInfo.dateOfBirth,
-        height: parseInt(data.personalInfo.height),
-        weight: parseFloat(data.personalInfo.weight),
+        email: user.email,
+        first_name: data.personalInfo.firstName.trim(),
+        last_name: data.personalInfo.lastName.trim(),
+        date_of_birth: data.personalInfo.dateOfBirth || null,
+        height: data.personalInfo.height ? parseInt(data.personalInfo.height) : null,
+        weight: data.personalInfo.weight ? parseFloat(data.personalInfo.weight) : null,
         average_cycle_length: parseInt(data.cycleInfo.averageCycleLength),
         average_period_length: parseInt(data.cycleInfo.averagePeriodLength),
-        last_period_date: data.cycleInfo.lastPeriodDate,
-        contraception_method: data.cycleInfo.contraceptionMethod,
-        health_goals: data.healthGoals
+        last_period_date: data.cycleInfo.lastPeriodDate || null,
+        contraception_method: data.cycleInfo.contraceptionMethod || null,
+        health_goals: data.healthGoals,
+        updated_at: new Date().toISOString()
       };
 
-      await updateUserProfile(user.id, profileData);
+      const { error } = await updateUserProfile(user.id, profileData);
+      
+      if (error) {
+        throw error;
+      }
+      
       onComplete();
     } catch (error) {
       console.error('Error saving profile:', error);
+      alert('Error saving profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -199,9 +213,37 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
       case 'personal':
         return (
           <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  value={data.personalInfo.firstName}
+                  onChange={(e) => updateData('personalInfo', { firstName: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Enter your first name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  value={data.personalInfo.lastName}
+                  onChange={(e) => updateData('personalInfo', { lastName: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Enter your last name"
+                  required
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date of Birth
+                Date of Birth *
               </label>
               <input
                 type="date"
@@ -222,6 +264,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
                   onChange={(e) => updateData('personalInfo', { height: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="165"
+                  min="100"
+                  max="250"
                 />
               </div>
               <div>
@@ -235,6 +279,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
                   onChange={(e) => updateData('personalInfo', { weight: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="60.0"
+                  min="30"
+                  max="200"
                 />
               </div>
             </div>
@@ -246,13 +292,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                When was your last period?
+                When was your last period? *
               </label>
               <input
                 type="date"
                 value={data.cycleInfo.lastPeriodDate}
                 onChange={(e) => updateData('cycleInfo', { lastPeriodDate: e.target.value })}
                 className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                max={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -399,7 +446,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
   const canProceed = () => {
     switch (steps[currentStep].id) {
       case 'personal':
-        return data.personalInfo.dateOfBirth;
+        return data.personalInfo.firstName.trim() && 
+               data.personalInfo.lastName.trim() && 
+               data.personalInfo.dateOfBirth;
       case 'cycle':
         return data.cycleInfo.lastPeriodDate;
       case 'goals':

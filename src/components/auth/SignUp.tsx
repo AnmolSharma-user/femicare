@@ -72,10 +72,10 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
       setError(error.message);
     } else {
       setSuccess(true);
-      // Show success message for 3 seconds, then redirect to sign in
+      // Show success message for 5 seconds, then redirect to sign in
       setTimeout(() => {
         onToggleMode(); // Switch to sign in mode
-      }, 3000);
+      }, 5000);
     }
     
     setLoading(false);
@@ -110,12 +110,26 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
             </p>
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
               <p className="text-green-800 text-sm">
-                <strong>Important:</strong> You must verify your email address before you can sign in to your account.
+                <strong>Important:</strong> Check your email (including spam folder) to verify your account before signing in.
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <p className="text-blue-800 text-sm">
+                <strong>Next Steps:</strong>
+                <br />1. Check your email and click the verification link
+                <br />2. Return here and sign in with your credentials
+                <br />3. Complete your health profile setup
               </p>
             </div>
             <p className="text-sm text-gray-500">
               Redirecting to sign in page in a few seconds...
             </p>
+            <button
+              onClick={onToggleMode}
+              className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all"
+            >
+              Go to Sign In
+            </button>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Droplets, Heart, TrendingUp, Clock, Target, Plus, Activity, Zap, Moon, Brain } from 'lucide-react';
+import { Calendar, Droplets, Heart, TrendingUp, Clock, Target, Plus, Activity, Zap, Moon, Brain, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   getUserProfile, 
@@ -10,7 +10,9 @@ import {
   getCycleAnalytics,
   addMoodLog,
   addSymptomLog,
-  addCycleLog
+  addCycleLog,
+  getAdvancedAnalytics,
+  refreshUserData
 } from '../utils/supabase';
 
 const Dashboard = () => {
@@ -20,7 +22,7 @@ const Dashboard = () => {
   const [recentMoods, setRecentMoods] = useState<any[]>([]);
   const [cycleLogs, setCycleLogs] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
-  const [cycleAnalytics, setCycleAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showQuickLog, setShowQuickLog] = useState<string | null>(null);
   const [quickLogData, setQuickLogData] = useState({
@@ -45,28 +47,18 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      const [
-        profileResult, 
-        symptomsResult, 
-        moodsResult, 
-        cycleResult,
-        insightsResult,
-        analyticsResult
-      ] = await Promise.all([
-        getUserProfile(user.id),
-        getSymptomLogs(user.id, 5),
-        getMoodLogs(user.id, 3),
-        getCycleLogs(user.id, 3),
-        getUserInsights(user.id, 3),
-        getCycleAnalytics(user.id)
-      ]);
+      const refreshedData = await refreshUserData(user.id);
+      
+      if (refreshedData.profile) setProfile(refreshedData.profile);
+      if (refreshedData.symptoms) setRecentSymptoms(refreshedData.symptoms);
+      if (refreshedData.moods) setRecentMoods(refreshedData.moods);
+      if (refreshedData.cycles) setCycleLogs(refreshedData.cycles);
+      if (refreshedData.analytics) setAnalytics(refreshedData.analytics);
 
-      if (profileResult.data) setProfile(profileResult.data);
-      if (symptomsResult.data) setRecentSymptoms(symptomsResult.data);
-      if (moodsResult.data) setRecentMoods(moodsResult.data);
-      if (cycleResult.data) setCycleLogs(cycleResult.data);
+      // Load insights separately
+      const insightsResult = await getUserInsights(user.id, 3);
       if (insightsResult.data) setInsights(insightsResult.data);
-      if (analyticsResult.data) setCycleAnalytics(analyticsResult.data);
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -89,8 +81,7 @@ const Dashboard = () => {
     if (!profile?.last_period_date) return 0;
     
     const lastPeriod = new Date(profile.last_period_date);
-    // Use actual user's cycle length from profile or analytics, fallback to 28
-    const cycleLength = profile?.average_cycle_length || cycleAnalytics?.averageCycleLength || 28;
+    const cycleLength = profile?.average_cycle_length || analytics?.cycles?.averageCycleLength || 28;
     const nextPeriod = new Date(lastPeriod);
     nextPeriod.setDate(lastPeriod.getDate() + cycleLength);
     
@@ -103,9 +94,8 @@ const Dashboard = () => {
 
   const getCurrentPhase = () => {
     const cycleDay = calculateCycleDay();
-    // Use actual user's cycle and period length from profile or analytics
-    const cycleLength = profile?.average_cycle_length || cycleAnalytics?.averageCycleLength || 28;
-    const periodLength = profile?.average_period_length || cycleAnalytics?.averagePeriodLength || 5;
+    const cycleLength = profile?.average_cycle_length || analytics?.cycles?.averageCycleLength || 28;
+    const periodLength = profile?.average_period_length || analytics?.cycles?.averagePeriodLength || 5;
     
     if (cycleDay <= periodLength) return 'Menstrual';
     if (cycleDay <= cycleLength / 2 - 2) return 'Follicular';
@@ -118,6 +108,41 @@ const Dashboard = () => {
     if (phase === 'Ovulation') return 'High';
     if (phase === 'Follicular' && calculateCycleDay() > 10) return 'Medium';
     return 'Low';
+  };
+
+  const getPeriodAlert = () => {
+    const daysUntilNext = calculateNextPeriod();
+    const cycleDay = calculateCycleDay();
+    const expectedCycleLength = profile?.average_cycle_length || 28;
+    
+    if (cycleDay > expectedCycleLength + 3) {
+      return {
+        type: 'late',
+        message: `Your period is ${cycleDay - expectedCycleLength} days late. Consider logging if it has started.`,
+        icon: AlertTriangle,
+        color: 'text-red-600 bg-red-50 border-red-200'
+      };
+    }
+    
+    if (daysUntilNext <= 2 && daysUntilNext > 0) {
+      return {
+        type: 'upcoming',
+        message: `Your period is expected in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}. Prepare accordingly.`,
+        icon: Info,
+        color: 'text-blue-600 bg-blue-50 border-blue-200'
+      };
+    }
+    
+    if (daysUntilNext === 0) {
+      return {
+        type: 'today',
+        message: 'Your period is expected today. Don\'t forget to log it when it starts.',
+        icon: Calendar,
+        color: 'text-purple-600 bg-purple-50 border-purple-200'
+      };
+    }
+    
+    return null;
   };
 
   const handleQuickLog = async (type: string) => {
@@ -151,7 +176,7 @@ const Dashboard = () => {
       }
       
       setShowQuickLog(null);
-      await loadDashboardData();
+      await loadDashboardData(); // Refresh all data
     } catch (error) {
       console.error('Error logging data:', error);
     }
@@ -163,6 +188,8 @@ const Dashboard = () => {
     currentPhase: getCurrentPhase(),
     fertility: getFertilityStatus()
   };
+
+  const periodAlert = getPeriodAlert();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -215,13 +242,23 @@ const Dashboard = () => {
           <p className="text-pink-100 text-base md:text-lg">
             Today is day {todayStats.cycleDay} of your cycle. You're in the {todayStats.currentPhase.toLowerCase()} phase.
           </p>
-          {cycleAnalytics && (
+          {analytics?.cycles && (
             <p className="text-pink-200 text-sm mt-2">
-              Your cycle regularity: {cycleAnalytics.regularity}% • Average length: {cycleAnalytics.averageCycleLength} days
+              Your cycle regularity: {analytics.cycles.regularity}% • Average length: {analytics.cycles.averageCycleLength} days
             </p>
           )}
         </div>
       </div>
+
+      {/* Period Alert */}
+      {periodAlert && (
+        <div className={`p-4 rounded-xl border-2 ${periodAlert.color}`}>
+          <div className="flex items-center space-x-3">
+            <periodAlert.icon className="w-5 h-5" />
+            <p className="font-medium">{periodAlert.message}</p>
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -274,6 +311,40 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Predictions & Insights */}
+      {analytics?.predictions && (
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Live Predictions & Insights</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="p-3 md:p-4 bg-purple-50 rounded-xl border border-purple-200">
+              <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                <h4 className="text-sm md:text-base font-medium text-purple-900">Next Period Prediction</h4>
+              </div>
+              <p className="text-sm md:text-base text-purple-800 mb-1 md:mb-2">
+                Expected: {new Date(analytics.predictions.nextPeriod).toLocaleDateString()}
+              </p>
+              <p className="text-xs md:text-sm text-purple-600">
+                Confidence: {analytics.predictions.confidence}%
+              </p>
+            </div>
+
+            <div className="p-3 md:p-4 bg-pink-50 rounded-xl border border-pink-200">
+              <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
+                <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-600" />
+                <h4 className="text-sm md:text-base font-medium text-pink-900">Fertility Window</h4>
+              </div>
+              <p className="text-sm md:text-base text-pink-800 mb-1 md:mb-2">
+                {new Date(analytics.predictions.ovulationWindow.start).toLocaleDateString()} - {new Date(analytics.predictions.ovulationWindow.end).toLocaleDateString()}
+              </p>
+              <p className="text-xs md:text-sm text-pink-600">
+                Optimal conception window
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity & Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">

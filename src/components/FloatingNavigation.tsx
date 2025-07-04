@@ -19,7 +19,7 @@ const FloatingNavigation: React.FC<FloatingNavigationProps> = ({ activeTab, setA
     <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
       {/* Background with blur and border */}
       <div className="bg-white/95 backdrop-blur-lg border-t border-pink-100 shadow-2xl">
-        <div className="flex items-center justify-around px-2 py-3 safe-area-inset-bottom">
+        <div className="flex items-center justify-around px-2 py-2 pb-safe">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
@@ -44,6 +44,8 @@ const FloatingNavigation: React.FC<FloatingNavigationProps> = ({ activeTab, setA
             );
           })}
         </div>
+        {/* Safe area padding for devices with home indicator */}
+        <div className="h-safe-bottom"></div>
       </div>
     </div>
   );
