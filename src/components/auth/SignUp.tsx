@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Heart, Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
 import { signUp } from '../../utils/supabase';
 
 interface SignUpProps {
@@ -19,6 +19,7 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -50,6 +51,7 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess(false);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -64,12 +66,16 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
       return;
     }
 
-    const { error } = await signUp(formData.email, formData.password);
+    const { data, error } = await signUp(formData.email, formData.password);
     
     if (error) {
       setError(error.message);
     } else {
-      onSignUpSuccess();
+      setSuccess(true);
+      // Show success message for 3 seconds, then redirect to sign in
+      setTimeout(() => {
+        onToggleMode(); // Switch to sign in mode
+      }, 3000);
     }
     
     setLoading(false);
@@ -88,6 +94,33 @@ const SignUp: React.FC<SignUpProps> = ({ onToggleMode, onSignUpSuccess }) => {
   const passwordStrength = getPasswordStrength(formData.password);
   const strengthColors = ['bg-red-500', 'bg-red-400', 'bg-yellow-500', 'bg-yellow-400', 'bg-green-500'];
   const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+
+  // Show success message
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Created Successfully!</h2>
+            <p className="text-gray-600 mb-6">
+              Please check your email to verify your account and then sign in.
+            </p>
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+              <p className="text-green-800 text-sm">
+                <strong>Important:</strong> You must verify your email address before you can sign in to your account.
+              </p>
+            </div>
+            <p className="text-sm text-gray-500">
+              Redirecting to sign in page in a few seconds...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center p-4">

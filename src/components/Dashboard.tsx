@@ -89,7 +89,8 @@ const Dashboard = () => {
     if (!profile?.last_period_date) return 0;
     
     const lastPeriod = new Date(profile.last_period_date);
-    const cycleLength = cycleAnalytics?.averageCycleLength || profile?.average_cycle_length || 28;
+    // Use actual user's cycle length from profile or analytics, fallback to 28
+    const cycleLength = profile?.average_cycle_length || cycleAnalytics?.averageCycleLength || 28;
     const nextPeriod = new Date(lastPeriod);
     nextPeriod.setDate(lastPeriod.getDate() + cycleLength);
     
@@ -102,8 +103,9 @@ const Dashboard = () => {
 
   const getCurrentPhase = () => {
     const cycleDay = calculateCycleDay();
-    const cycleLength = cycleAnalytics?.averageCycleLength || profile?.average_cycle_length || 28;
-    const periodLength = cycleAnalytics?.averagePeriodLength || profile?.average_period_length || 5;
+    // Use actual user's cycle and period length from profile or analytics
+    const cycleLength = profile?.average_cycle_length || cycleAnalytics?.averageCycleLength || 28;
+    const periodLength = profile?.average_period_length || cycleAnalytics?.averagePeriodLength || 5;
     
     if (cycleDay <= periodLength) return 'Menstrual';
     if (cycleDay <= cycleLength / 2 - 2) return 'Follicular';

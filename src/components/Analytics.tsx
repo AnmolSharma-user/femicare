@@ -127,63 +127,63 @@ const Analytics = () => {
     })) : [];
 
   const renderOverview = () => (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">Wellness Score</h3>
-            <Activity className="w-5 h-5 text-purple-600" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-xs md:text-sm font-medium text-gray-500">Wellness Score</h3>
+            <Activity className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-2">{analytics?.wellnessScore || 0}</div>
-          <p className="text-sm text-purple-600">
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{analytics?.wellnessScore || 0}</div>
+          <p className="text-xs md:text-sm text-purple-600">
             {(analytics?.wellnessScore || 0) >= 80 ? 'Excellent' : 
              (analytics?.wellnessScore || 0) >= 60 ? 'Good' : 'Needs Attention'}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">Cycle Regularity</h3>
-            <Calendar className="w-5 h-5 text-green-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-xs md:text-sm font-medium text-gray-500">Cycle Regularity</h3>
+            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-2">{analytics?.cycles?.regularity || 0}%</div>
-          <p className="text-sm text-green-600">
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{analytics?.cycles?.regularity || 0}%</div>
+          <p className="text-xs md:text-sm text-green-600">
             {(analytics?.cycles?.regularity || 0) >= 90 ? 'Very Regular' : 
              (analytics?.cycles?.regularity || 0) >= 70 ? 'Mostly Regular' : 'Irregular'}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">Symptoms Tracked</h3>
-            <Heart className="w-5 h-5 text-pink-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-xs md:text-sm font-medium text-gray-500">Symptoms Tracked</h3>
+            <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-2">{analytics?.symptoms?.totalLogs || 0}</div>
-          <p className="text-sm text-pink-600">Last 90 days</p>
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{analytics?.symptoms?.totalLogs || 0}</div>
+          <p className="text-xs md:text-sm text-pink-600">Last 90 days</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">Data Points</h3>
-            <BarChart3 className="w-5 h-5 text-indigo-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="text-xs md:text-sm font-medium text-gray-500">Data Points</h3>
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
             {(analytics?.cycles?.totalCycles || 0) + (analytics?.symptoms?.totalLogs || 0) + (moodTrends.length || 0)}
           </div>
-          <p className="text-sm text-indigo-600">Total logged</p>
+          <p className="text-xs md:text-sm text-indigo-600">Total logged</p>
         </div>
       </div>
 
       {/* Wellness Radar Chart */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Wellness Overview</h3>
-        <div className="h-80">
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Wellness Overview</h3>
+        <div className="h-64 md:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={wellnessData}>
               <PolarGrid />
-              <PolarAngleAxis dataKey="subject" />
-              <PolarRadiusAxis angle={90} domain={[0, 100]} />
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
               <Radar name="Wellness" dataKey="A" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.3} />
             </RadarChart>
           </ResponsiveContainer>
@@ -192,31 +192,31 @@ const Analytics = () => {
 
       {/* Predictions and Insights */}
       {analytics?.predictions && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Predictions & Insights</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                <h4 className="font-medium text-purple-900">Next Period Prediction</h4>
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Predictions & Insights</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="p-3 md:p-4 bg-purple-50 rounded-xl border border-purple-200">
+              <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                <h4 className="text-sm md:text-base font-medium text-purple-900">Next Period Prediction</h4>
               </div>
-              <p className="text-purple-800 mb-2">
+              <p className="text-sm md:text-base text-purple-800 mb-1 md:mb-2">
                 Expected: {format(parseISO(analytics.predictions.nextPeriod), 'MMM dd, yyyy')}
               </p>
-              <p className="text-sm text-purple-600">
+              <p className="text-xs md:text-sm text-purple-600">
                 Confidence: {analytics.predictions.confidence}%
               </p>
             </div>
 
-            <div className="p-4 bg-pink-50 rounded-xl border border-pink-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <Heart className="w-5 h-5 text-pink-600" />
-                <h4 className="font-medium text-pink-900">Fertility Window</h4>
+            <div className="p-3 md:p-4 bg-pink-50 rounded-xl border border-pink-200">
+              <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
+                <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-600" />
+                <h4 className="text-sm md:text-base font-medium text-pink-900">Fertility Window</h4>
               </div>
-              <p className="text-pink-800 mb-2">
+              <p className="text-sm md:text-base text-pink-800 mb-1 md:mb-2">
                 {format(parseISO(analytics.predictions.ovulationWindow.start), 'MMM dd')} - {format(parseISO(analytics.predictions.ovulationWindow.end), 'MMM dd')}
               </p>
-              <p className="text-sm text-pink-600">
+              <p className="text-xs md:text-sm text-pink-600">
                 Optimal conception window
               </p>
             </div>
@@ -227,16 +227,16 @@ const Analytics = () => {
   );
 
   const renderCycleAnalytics = () => (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Cycle Length Trends */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Cycle Length Trends</h3>
-        <div className="h-80">
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Cycle Length Trends</h3>
+        <div className="h-64 md:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cycleTrends}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="cycle" />
-              <YAxis domain={[20, 40]} />
+              <XAxis dataKey="cycle" tick={{ fontSize: 12 }} />
+              <YAxis domain={[20, 40]} tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
               <Line type="monotone" dataKey="length" stroke="#8B5CF6" strokeWidth={3} name="Cycle Length" />
@@ -248,9 +248,9 @@ const Analytics = () => {
 
       {/* Flow Intensity Distribution */}
       {cycleTrends.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Flow Intensity Distribution</h3>
-          <div className="h-80">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Flow Intensity Distribution</h3>
+          <div className="h-64 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cycleTrends.reduce((acc, cycle) => {
                 const intensity = cycle.flowIntensity || 'normal';
@@ -263,8 +263,8 @@ const Analytics = () => {
                 return acc;
               }, [])}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="intensity" />
-                <YAxis />
+                <XAxis dataKey="intensity" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#8B5CF6" />
               </BarChart>
@@ -274,33 +274,33 @@ const Analytics = () => {
       )}
 
       {/* Cycle Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h4 className="font-medium text-gray-900 mb-4">Average Cycle Length</h4>
-          <div className="text-3xl font-bold text-purple-600 mb-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 md:mb-4">Average Cycle Length</h4>
+          <div className="text-2xl md:text-3xl font-bold text-purple-600 mb-1 md:mb-2">
             {analytics?.cycles?.averageCycleLength || 0} days
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs md:text-sm text-gray-500">
             Range: {cycleTrends.length > 0 ? `${Math.min(...cycleTrends.map(c => c.length))} - ${Math.max(...cycleTrends.map(c => c.length))} days` : 'No data'}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h4 className="font-medium text-gray-900 mb-4">Average Period Length</h4>
-          <div className="text-3xl font-bold text-pink-600 mb-2">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 md:mb-4">Average Period Length</h4>
+          <div className="text-2xl md:text-3xl font-bold text-pink-600 mb-1 md:mb-2">
             {analytics?.cycles?.averagePeriodLength || 0} days
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs md:text-sm text-gray-500">
             Typical range: 3-7 days
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h4 className="font-medium text-gray-900 mb-4">Regularity Score</h4>
-          <div className="text-3xl font-bold text-green-600 mb-2">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h4 className="text-sm md:text-base font-medium text-gray-900 mb-3 md:mb-4">Regularity Score</h4>
+          <div className="text-2xl md:text-3xl font-bold text-green-600 mb-1 md:mb-2">
             {analytics?.cycles?.regularity || 0}%
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs md:text-sm text-gray-500">
             {(analytics?.cycles?.regularity || 0) >= 90 ? 'Excellent' : 
              (analytics?.cycles?.regularity || 0) >= 70 ? 'Good' : 'Needs attention'}
           </p>
@@ -310,16 +310,16 @@ const Analytics = () => {
   );
 
   const renderSymptomAnalytics = () => (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Symptom Trends Over Time */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Symptom Trends (Last 30 Days)</h3>
-        <div className="h-80">
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Symptom Trends (Last 30 Days)</h3>
+        <div className="h-64 md:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={symptomTrends}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="formattedDate" />
-              <YAxis />
+              <XAxis dataKey="formattedDate" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
               <Area type="monotone" dataKey="count" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.6} name="Symptom Count" />
@@ -330,10 +330,10 @@ const Analytics = () => {
       </div>
 
       {/* Symptom Categories Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Symptoms by Category</h3>
-          <div className="h-80">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Symptoms by Category</h3>
+          <div className="h-64 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPieChart>
                 <Pie
@@ -343,6 +343,7 @@ const Analytics = () => {
                   outerRadius={80}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelStyle={{ fontSize: 12 }}
                 >
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -354,14 +355,14 @@ const Analytics = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Symptoms by Cycle Phase</h3>
-          <div className="h-80">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Symptoms by Cycle Phase</h3>
+          <div className="h-64 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={phaseData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Bar dataKey="value" fill="#8B5CF6" />
               </BarChart>
@@ -371,25 +372,25 @@ const Analytics = () => {
       </div>
 
       {/* Most Common Symptoms */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Most Common Symptoms</h3>
-        <div className="space-y-4">
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Most Common Symptoms</h3>
+        <div className="space-y-3 md:space-y-4">
           {analytics?.symptoms?.mostCommonSymptoms?.map((symptom, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-purple-600 font-medium">{index + 1}</span>
+            <div key={index} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm md:text-base text-purple-600 font-medium">{index + 1}</span>
                 </div>
-                <span className="font-medium text-gray-900">{symptom.symptom}</span>
+                <span className="text-sm md:text-base font-medium text-gray-900">{symptom.symptom}</span>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-32 bg-gray-200 rounded-full h-2">
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <div className="w-20 md:w-32 bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-purple-600 h-2 rounded-full" 
                     style={{ width: `${symptom.frequency}%` }}
                   ></div>
                 </div>
-                <span className="text-sm font-medium text-gray-600">{symptom.frequency}%</span>
+                <span className="text-xs md:text-sm font-medium text-gray-600">{symptom.frequency}%</span>
               </div>
             </div>
           )) || <p className="text-gray-500 text-center py-8">No symptom data available</p>}
@@ -399,16 +400,16 @@ const Analytics = () => {
   );
 
   const renderMoodAnalytics = () => (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Mood Trends */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">Mood & Wellness Trends</h3>
-        <div className="h-80">
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Mood & Wellness Trends</h3>
+        <div className="h-64 md:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={moodTrends}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="formattedDate" />
-              <YAxis domain={[0, 10]} />
+              <XAxis dataKey="formattedDate" tick={{ fontSize: 12 }} />
+              <YAxis domain={[0, 10]} tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
               <Line type="monotone" dataKey="energy" stroke="#F59E0B" strokeWidth={2} name="Energy Level" />
@@ -421,9 +422,9 @@ const Analytics = () => {
 
       {/* Mood Distribution */}
       {moodTrends.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Mood Distribution</h3>
-          <div className="h-80">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Mood Distribution</h3>
+          <div className="h-64 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={moodTrends.reduce((acc, mood) => {
                 const existing = acc.find(item => item.mood === mood.mood);
@@ -435,8 +436,8 @@ const Analytics = () => {
                 return acc;
               }, [])}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mood" />
-                <YAxis />
+                <XAxis dataKey="mood" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#8B5CF6" />
               </BarChart>
@@ -446,41 +447,41 @@ const Analytics = () => {
       )}
 
       {/* Wellness Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3 mb-4">
-            <Zap className="w-6 h-6 text-yellow-600" />
-            <h4 className="font-medium text-gray-900">Average Energy</h4>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+            <Zap className="w-5 h-5 md:w-6 md:h-6 text-yellow-600" />
+            <h4 className="text-sm md:text-base font-medium text-gray-900">Average Energy</h4>
           </div>
-          <div className="text-3xl font-bold text-yellow-600 mb-2">
+          <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-1 md:mb-2">
             {moodTrends.length > 0 ? 
               Math.round(moodTrends.reduce((sum, mood) => sum + mood.energy, 0) / moodTrends.length) : 0}/10
           </div>
-          <p className="text-sm text-gray-500">Last 30 days</p>
+          <p className="text-xs md:text-sm text-gray-500">Last 30 days</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3 mb-4">
-            <Brain className="w-6 h-6 text-red-600" />
-            <h4 className="font-medium text-gray-900">Average Stress</h4>
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+            <Brain className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
+            <h4 className="text-sm md:text-base font-medium text-gray-900">Average Stress</h4>
           </div>
-          <div className="text-3xl font-bold text-red-600 mb-2">
+          <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1 md:mb-2">
             {moodTrends.length > 0 ? 
               Math.round(moodTrends.reduce((sum, mood) => sum + mood.stress, 0) / moodTrends.length) : 0}/10
           </div>
-          <p className="text-sm text-gray-500">Lower is better</p>
+          <p className="text-xs md:text-sm text-gray-500">Lower is better</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3 mb-4">
-            <Moon className="w-6 h-6 text-blue-600" />
-            <h4 className="font-medium text-gray-900">Sleep Quality</h4>
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+            <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+            <h4 className="text-sm md:text-base font-medium text-gray-900">Sleep Quality</h4>
           </div>
-          <div className="text-3xl font-bold text-blue-600 mb-2">
+          <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-1 md:mb-2">
             {moodTrends.length > 0 ? 
               Math.round(moodTrends.reduce((sum, mood) => sum + mood.sleep, 0) / moodTrends.length) : 0}/10
           </div>
-          <p className="text-sm text-gray-500">Average rating</p>
+          <p className="text-xs md:text-sm text-gray-500">Average rating</p>
         </div>
       </div>
     </div>
@@ -502,42 +503,43 @@ const Analytics = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-8 text-white">
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl md:rounded-3xl p-6 md:p-8 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Advanced Analytics</h2>
-            <p className="text-indigo-100 text-lg">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Advanced Analytics</h2>
+            <p className="text-indigo-100 text-base md:text-lg">
               Comprehensive insights into your health patterns and trends
             </p>
             {analytics && (
-              <p className="text-indigo-200 text-sm mt-2">
+              <p className="text-indigo-200 text-xs md:text-sm mt-2">
                 {analytics.cycles?.totalCycles || 0} cycles • {analytics.symptoms?.totalLogs || 0} symptoms • {moodTrends.length} mood logs
               </p>
             )}
           </div>
-          <BarChart3 className="w-12 h-12 text-white/80" />
+          <BarChart3 className="w-10 h-10 md:w-12 md:h-12 text-white/80" />
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-        <div className="flex space-x-2">
+      <div className="bg-white rounded-xl md:rounded-2xl p-2 shadow-sm border border-gray-100">
+        <div className="grid grid-cols-2 md:flex md:space-x-2 gap-2 md:gap-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all ${
+                className={`flex items-center justify-center md:justify-start space-x-1 md:space-x-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl transition-all text-sm md:text-base ${
                   activeTab === tab.id
                     ? 'bg-purple-100 text-purple-700 font-medium'
                     : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span>{tab.label}</span>
+                <Icon className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
               </button>
             );
           })}
@@ -551,20 +553,20 @@ const Analytics = () => {
       {activeTab === 'mood' && renderMoodAnalytics()}
 
       {/* Data Quality Indicator */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Quality & Recommendations</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`p-4 rounded-xl border-2 ${
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Data Quality & Recommendations</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div className={`p-3 md:p-4 rounded-xl border-2 ${
             (analytics?.cycles?.totalCycles || 0) >= 3 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
           }`}>
             <div className="flex items-center space-x-2 mb-2">
               {(analytics?.cycles?.totalCycles || 0) >= 3 ? 
-                <CheckCircle className="w-5 h-5 text-green-600" /> : 
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" /> : 
+                <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-yellow-600" />
               }
-              <span className="font-medium">Cycle Data</span>
+              <span className="text-sm md:text-base font-medium">Cycle Data</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs md:text-sm text-gray-600">
               {(analytics?.cycles?.totalCycles || 0) >= 3 ? 
                 'Sufficient data for accurate predictions' : 
                 'Log more cycles for better insights'
@@ -572,17 +574,17 @@ const Analytics = () => {
             </p>
           </div>
 
-          <div className={`p-4 rounded-xl border-2 ${
+          <div className={`p-3 md:p-4 rounded-xl border-2 ${
             (analytics?.symptoms?.totalLogs || 0) >= 10 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
           }`}>
             <div className="flex items-center space-x-2 mb-2">
               {(analytics?.symptoms?.totalLogs || 0) >= 10 ? 
-                <CheckCircle className="w-5 h-5 text-green-600" /> : 
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" /> : 
+                <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-yellow-600" />
               }
-              <span className="font-medium">Symptom Data</span>
+              <span className="text-sm md:text-base font-medium">Symptom Data</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs md:text-sm text-gray-600">
               {(analytics?.symptoms?.totalLogs || 0) >= 10 ? 
                 'Good symptom tracking for pattern analysis' : 
                 'Track more symptoms for better correlations'
@@ -590,17 +592,17 @@ const Analytics = () => {
             </p>
           </div>
 
-          <div className={`p-4 rounded-xl border-2 ${
+          <div className={`p-3 md:p-4 rounded-xl border-2 ${
             moodTrends.length >= 7 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
           }`}>
             <div className="flex items-center space-x-2 mb-2">
               {moodTrends.length >= 7 ? 
-                <CheckCircle className="w-5 h-5 text-green-600" /> : 
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" /> : 
+                <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-yellow-600" />
               }
-              <span className="font-medium">Mood Data</span>
+              <span className="text-sm md:text-base font-medium">Mood Data</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs md:text-sm text-gray-600">
               {moodTrends.length >= 7 ? 
                 'Regular mood tracking for wellness insights' : 
                 'Log mood daily for better wellness tracking'
