@@ -12,7 +12,7 @@ import {
   deleteProfilePicture
 } from '../utils/supabase';
 import NotificationSetup from './NotificationSetup';
-import ImportDataModal from './ImportDataModal';
+import ImportDataPage from './ImportDataPage';
 import { scheduleReminders, isNotificationEnabled } from '../utils/notifications';
 
 const SettingsPanel = () => {
@@ -25,7 +25,7 @@ const SettingsPanel = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [uploadingPicture, setUploadingPicture] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [showImportPage, setShowImportPage] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -687,7 +687,7 @@ const SettingsPanel = () => {
         <h3 className="text-lg font-semibold text-gray-900">Import Data</h3>
         <div className="space-y-3">
           <button 
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowImportPage(true)}
             className="w-full p-4 bg-purple-50 border border-purple-200 rounded-lg text-left hover:bg-purple-100 transition-colors"
           >
             <div className="flex items-center space-x-3">
@@ -742,6 +742,15 @@ const SettingsPanel = () => {
       handleSaveSettings();
     }
   };
+
+  if (showImportPage) {
+    return (
+      <ImportDataPage 
+        onBack={() => setShowImportPage(false)}
+        onSuccess={handleImportComplete}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -839,14 +848,6 @@ const SettingsPanel = () => {
           </div>
         </div>
       </div>
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <ImportDataModal
-          onClose={() => setShowImportModal(false)}
-          onImportComplete={handleImportComplete}
-        />
-      )}
     </div>
   );
 };
