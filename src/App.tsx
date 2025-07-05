@@ -16,6 +16,11 @@ import NotificationSetup from './components/NotificationSetup';
 import { getUserProfile, getProfilePictureUrl } from './utils/supabase';
 import { initializeNotifications, isNotificationEnabled } from './utils/notifications';
 
+// Import SEO Pages
+import PeriodTracker from './pages/PeriodTracker';
+import OvulationTracker from './pages/OvulationTracker';
+import PregnancyTracker from './pages/PregnancyTracker';
+
 function AppContent() {
   const { user, loading, signOut } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -25,6 +30,7 @@ function AppContent() {
   const [profile, setProfile] = useState<any>(null);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [currentPage, setCurrentPage] = useState('');
 
   useEffect(() => {
     const checkMobile = () => {
@@ -34,6 +40,14 @@ function AppContent() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // Handle routing based on URL path
+    const path = window.location.pathname;
+    if (path.startsWith('/pages/')) {
+      setCurrentPage(path);
+    }
   }, []);
 
   useEffect(() => {
@@ -92,6 +106,21 @@ function AppContent() {
       }
     }, 1000);
   };
+
+  // Handle SEO page routing
+  if (currentPage.startsWith('/pages/')) {
+    switch (currentPage) {
+      case '/pages/period-tracker':
+        return <PeriodTracker />;
+      case '/pages/ovulation-tracker':
+        return <OvulationTracker />;
+      case '/pages/pregnancy-tracker':
+        return <PregnancyTracker />;
+      default:
+        // Redirect to period tracker for unknown pages
+        return <PeriodTracker />;
+    }
+  }
 
   const renderContent = () => {
     switch (activeTab) {
