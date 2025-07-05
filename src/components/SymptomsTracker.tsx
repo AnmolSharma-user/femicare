@@ -434,15 +434,16 @@ const SymptomsTracker = () => {
         </div>
       </div>
 
-      {/* Enhanced Add Symptom Modal */}
+      {/* Mobile-Optimized Add Symptom Modal */}
       {showAddSymptom && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
+          {/* Mobile: Full screen modal, Desktop: Centered modal */}
+          <div className="bg-white w-full h-full sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-4xl sm:rounded-2xl overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
               <div>
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900">Log New Symptom</h3>
-                <p className="text-sm md:text-base text-gray-600 mt-1">Track your symptoms for better health insights</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Log New Symptom</h3>
+                <p className="text-sm text-gray-600 mt-1">Track your symptoms for better health insights</p>
               </div>
               <button
                 onClick={() => {
@@ -451,15 +452,15 @@ const SymptomsTracker = () => {
                 }}
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5 md:w-6 md:h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 pb-24 sm:pb-4">
               <div className="space-y-6">
                 {/* Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
                       <Calendar className="w-4 h-4 inline mr-2" />
@@ -469,7 +470,7 @@ const SymptomsTracker = () => {
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base"
                     />
                   </div>
                   <div className="space-y-2">
@@ -481,7 +482,7 @@ const SymptomsTracker = () => {
                       type="time"
                       value={formData.time_of_day}
                       onChange={(e) => setFormData({ ...formData, time_of_day: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base"
                     />
                   </div>
                 </div>
@@ -491,14 +492,14 @@ const SymptomsTracker = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     Category
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {categories.map((category) => {
                       const Icon = iconMap[category.icon_name] || Heart;
                       return (
                         <button
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
-                          className={`p-3 border-2 rounded-lg transition-all text-sm flex flex-col items-center space-y-2 ${
+                          className={`p-3 border-2 rounded-lg transition-all text-sm flex flex-col items-center space-y-2 min-h-[80px] ${
                             selectedCategory === category.id
                               ? 'border-purple-500 text-white shadow-lg'
                               : 'border-gray-300 hover:border-purple-500 hover:shadow-md'
@@ -509,7 +510,7 @@ const SymptomsTracker = () => {
                           }}
                         >
                           <Icon className="w-5 h-5" />
-                          <span className="font-medium">{category.name}</span>
+                          <span className="font-medium text-center">{category.name}</span>
                         </button>
                       );
                     })}
@@ -522,12 +523,12 @@ const SymptomsTracker = () => {
                     <label className="block text-sm font-medium text-gray-700">
                       Symptom
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
                       {getFilteredDefinitions().map((definition) => (
                         <button
                           key={definition.id}
                           onClick={() => setFormData({ ...formData, symptom_definition_id: definition.id })}
-                          className={`p-3 border-2 rounded-lg transition-all text-sm text-left ${
+                          className={`w-full p-3 border-2 rounded-lg transition-all text-sm text-left ${
                             formData.symptom_definition_id === definition.id
                               ? 'bg-purple-500 text-white border-purple-500 shadow-lg'
                               : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
@@ -551,7 +552,7 @@ const SymptomsTracker = () => {
                 )}
                 
                 {/* Additional Context */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-gray-700">
                       Stress Level (1-10)
@@ -590,7 +591,7 @@ const SymptomsTracker = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
                       Sleep Hours
@@ -602,7 +603,7 @@ const SymptomsTracker = () => {
                       step="0.5"
                       value={formData.sleep_hours}
                       onChange={(e) => setFormData({ ...formData, sleep_hours: parseFloat(e.target.value) })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base"
                     />
                   </div>
                   <div className="space-y-2">
@@ -612,7 +613,7 @@ const SymptomsTracker = () => {
                     <select
                       value={formData.exercise_intensity}
                       onChange={(e) => setFormData({ ...formData, exercise_intensity: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base"
                     >
                       <option value="none">None</option>
                       <option value="light">Light</option>
@@ -630,31 +631,33 @@ const SymptomsTracker = () => {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none text-base"
                     placeholder="Any additional notes about this symptom..."
                   />
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 p-4 md:p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowAddSymptom(false);
-                  resetForm();
-                }}
-                className="flex-1 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddSymptom}
-                disabled={!formData.symptom_definition_id}
-                className="flex-1 px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                Save Symptom
-              </button>
+            {/* Fixed Footer - Mobile optimized */}
+            <div className="fixed bottom-0 left-0 right-0 sm:relative sm:bottom-auto bg-white border-t border-gray-200 p-4 flex-shrink-0">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAddSymptom(false);
+                    resetForm();
+                  }}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-base"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddSymptom}
+                  disabled={!formData.symptom_definition_id}
+                  className="flex-1 px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base"
+                >
+                  Save Symptom
+                </button>
+              </div>
             </div>
           </div>
         </div>
