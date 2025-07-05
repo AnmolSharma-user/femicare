@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Download, AlertCircle, CheckCircle, X, Calendar, Heart, Activity } from 'lucide-react';
+import { Upload, FileText, Download, AlertCircle, CheckCircle, X, Calendar, Heart, Activity, Loader2, Info, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   addCycleLog, 
@@ -36,25 +36,33 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
       name: 'JSON Format',
       description: 'Standard JSON export from health apps',
       extensions: ['.json'],
-      example: 'femcare-export.json'
+      example: 'femcare-export.json',
+      icon: FileText,
+      color: 'bg-blue-500'
     },
     {
       name: 'CSV Format',
       description: 'Comma-separated values from spreadsheets',
       extensions: ['.csv'],
-      example: 'health-data.csv'
+      example: 'health-data.csv',
+      icon: FileText,
+      color: 'bg-green-500'
     },
     {
       name: 'Clue Export',
       description: 'Export from Clue period tracker',
       extensions: ['.json', '.csv'],
-      example: 'clue-export.json'
+      example: 'clue-export.json',
+      icon: Heart,
+      color: 'bg-pink-500'
     },
     {
       name: 'Flo Export',
       description: 'Export from Flo period tracker',
       extensions: ['.json', '.csv'],
-      example: 'flo-data.json'
+      example: 'flo-data.json',
+      icon: Activity,
+      color: 'bg-purple-500'
     }
   ];
 
@@ -107,7 +115,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
   };
 
   const mapClueData = (data: any) => {
-    // Map Clue export format to our format
     const cycles = [];
     const symptoms = [];
     const moods = [];
@@ -153,7 +160,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
   };
 
   const mapFloData = (data: any) => {
-    // Map Flo export format to our format
     const cycles = [];
     const symptoms = [];
     const moods = [];
@@ -197,26 +203,22 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
   };
 
   const normalizeData = (data: any) => {
-    // Detect and normalize different data formats
     if (data.cycles || data.symptoms || data.moods) {
-      return data; // Already in our format
+      return data;
     }
 
     if (data.periods || data.mood_tracking) {
-      return mapFloData(data); // Flo format
+      return mapFloData(data);
     }
 
     if (data.length && Array.isArray(data)) {
-      // CSV or array format
       return { cycles: data, symptoms: [], moods: [] };
     }
 
-    // Try to detect Clue format
     if (data.export_date || data.user_id) {
       return mapClueData(data);
     }
 
-    // Generic format detection
     const cycles = [];
     const symptoms = [];
     const moods = [];
@@ -252,7 +254,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
     try {
       const normalizedData = normalizeData(previewData);
       
-      // Get symptom definitions for mapping
       const [categoriesResult, definitionsResult] = await Promise.all([
         getSymptomCategories(),
         getSymptomDefinitions()
@@ -284,7 +285,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
       if (normalizedData.symptoms && normalizedData.symptoms.length > 0) {
         for (const symptom of normalizedData.symptoms) {
           try {
-            // Find matching symptom definition
             const symptomName = symptom.symptom || symptom.name || symptom.type;
             const definition = definitions.find(d => 
               d.name.toLowerCase().includes(symptomName.toLowerCase()) ||
@@ -299,9 +299,8 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
                 notes: symptom.notes || ''
               });
             } else {
-              // Fallback to legacy symptom log
               await addEnhancedSymptomLog(user.id, {
-                symptom_definition_id: definitions[0]?.id, // Use first available definition
+                symptom_definition_id: definitions[0]?.id,
                 date: symptom.date,
                 severity_level: mapSeverityToNumber(symptom.severity || symptom.intensity),
                 notes: `${symptomName}: ${symptom.notes || ''}`
@@ -335,7 +334,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
         }
       }
 
-      // Update user profile if we have cycle data
       if (stats.cycles > 0 && normalizedData.cycles.length > 0) {
         const latestCycle = normalizedData.cycles
           .sort((a, b) => new Date(b.start_date || b.date).getTime() - new Date(a.start_date || a.date).getTime())[0];
@@ -392,21 +390,26 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Supported Formats</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {supportedFormats.map((format, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-xl hover:border-purple-300 transition-colors">
-              <div className="flex items-center space-x-3 mb-2">
-                <FileText className="w-5 h-5 text-purple-600" />
-                <h4 className="font-medium text-gray-900">{format.name}</h4>
+          {supportedFormats.map((format, index) => {
+            const Icon = format.icon;
+            return (
+              <div key={index} className="p-4 border border-gray-200 rounded-xl hover:border-purple-300 transition-colors group">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className={`w-10 h-10 ${format.color} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{format.name}</h4>
+                    <p className="text-sm text-gray-600">{format.description}</p>
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs text-gray-500">
+                  <p>Extensions: {format.extensions.join(', ')}</p>
+                  <p className="text-purple-600">Example: {format.example}</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mb-2">{format.description}</p>
-              <p className="text-xs text-gray-500">
-                Extensions: {format.extensions.join(', ')}
-              </p>
-              <p className="text-xs text-purple-600">
-                Example: {format.example}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -436,7 +439,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div>
             <h4 className="font-medium text-blue-900 mb-2">Before importing:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
@@ -465,30 +468,36 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
 
         {/* Data Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-pink-50 rounded-xl border border-pink-200">
-            <div className="flex items-center space-x-3 mb-2">
-              <Calendar className="w-5 h-5 text-pink-600" />
+          <div className="p-6 bg-pink-50 rounded-xl border border-pink-200">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
               <h3 className="font-medium text-pink-900">Cycles</h3>
             </div>
-            <p className="text-2xl font-bold text-pink-600">{normalizedData.cycles?.length || 0}</p>
+            <p className="text-3xl font-bold text-pink-600 mb-1">{normalizedData.cycles?.length || 0}</p>
             <p className="text-sm text-pink-700">Period cycles found</p>
           </div>
 
-          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-            <div className="flex items-center space-x-3 mb-2">
-              <Heart className="w-5 h-5 text-purple-600" />
+          <div className="p-6 bg-purple-50 rounded-xl border border-purple-200">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                <Heart className="w-5 h-5 text-white" />
+              </div>
               <h3 className="font-medium text-purple-900">Symptoms</h3>
             </div>
-            <p className="text-2xl font-bold text-purple-600">{normalizedData.symptoms?.length || 0}</p>
+            <p className="text-3xl font-bold text-purple-600 mb-1">{normalizedData.symptoms?.length || 0}</p>
             <p className="text-sm text-purple-700">Symptom entries found</p>
           </div>
 
-          <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-center space-x-3 mb-2">
-              <Activity className="w-5 h-5 text-blue-600" />
+          <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
               <h3 className="font-medium text-blue-900">Moods</h3>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{normalizedData.moods?.length || 0}</p>
+            <p className="text-3xl font-bold text-blue-600 mb-1">{normalizedData.moods?.length || 0}</p>
             <p className="text-sm text-blue-700">Mood entries found</p>
           </div>
         </div>
@@ -504,22 +513,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
             </div>
           </div>
         )}
-
-        {/* Action Buttons */}
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setStep('select')}
-            className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Back
-          </button>
-          <button
-            onClick={importData}
-            className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all"
-          >
-            Import Data
-          </button>
-        </div>
       </div>
     );
   };
@@ -527,7 +520,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
   const renderImportingStep = () => (
     <div className="text-center space-y-6">
       <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-600 rounded-full flex items-center justify-center mx-auto">
-        <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Importing Your Data</h2>
@@ -553,19 +546,19 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
       {/* Import Statistics */}
       {importStats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-green-50 rounded-xl">
+          <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200">
             <p className="text-2xl font-bold text-green-600">{importStats.cycles}</p>
             <p className="text-sm text-green-700">Cycles</p>
           </div>
-          <div className="text-center p-4 bg-purple-50 rounded-xl">
+          <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
             <p className="text-2xl font-bold text-purple-600">{importStats.symptoms}</p>
             <p className="text-sm text-purple-700">Symptoms</p>
           </div>
-          <div className="text-center p-4 bg-blue-50 rounded-xl">
+          <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
             <p className="text-2xl font-bold text-blue-600">{importStats.moods}</p>
             <p className="text-sm text-blue-700">Moods</p>
           </div>
-          <div className="text-center p-4 bg-red-50 rounded-xl">
+          <div className="text-center p-4 bg-red-50 rounded-xl border border-red-200">
             <p className="text-2xl font-bold text-red-600">{importStats.errors}</p>
             <p className="text-sm text-red-700">Errors</p>
           </div>
@@ -594,40 +587,33 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
           You may need to refresh the page to see all updates.
         </p>
       </div>
-
-      <button
-        onClick={() => {
-          onImportComplete();
-          onClose();
-        }}
-        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all"
-      >
-        Continue to Dashboard
-      </button>
     </div>
   );
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold text-gray-900">Import Health Data</h1>
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Import Health Data</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1">Bring your health data from other apps</p>
+          </div>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         </div>
 
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center p-4 md:p-6 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center space-x-2 md:space-x-4">
             {['select', 'preview', 'importing', 'complete'].map((stepName, index) => (
               <div key={stepName} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step === stepName ? 'bg-purple-600 text-white' :
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                  step === stepName ? 'bg-purple-600 text-white scale-110' :
                   ['select', 'preview', 'importing', 'complete'].indexOf(step) > index ? 'bg-green-500 text-white' :
                   'bg-gray-200 text-gray-600'
                 }`}>
@@ -638,7 +624,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
                   )}
                 </div>
                 {index < 3 && (
-                  <div className={`w-12 h-1 mx-2 ${
+                  <div className={`w-8 md:w-12 h-1 mx-1 md:mx-2 transition-all ${
                     ['select', 'preview', 'importing', 'complete'].indexOf(step) > index ? 'bg-green-500' : 'bg-gray-200'
                   }`} />
                 )}
@@ -647,11 +633,50 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ onClose, onImportComp
           </div>
         </div>
 
-        {/* Step Content */}
-        {step === 'select' && renderSelectStep()}
-        {step === 'preview' && renderPreviewStep()}
-        {step === 'importing' && renderImportingStep()}
-        {step === 'complete' && renderCompleteStep()}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          {step === 'select' && renderSelectStep()}
+          {step === 'preview' && renderPreviewStep()}
+          {step === 'importing' && renderImportingStep()}
+          {step === 'complete' && renderCompleteStep()}
+        </div>
+
+        {/* Footer */}
+        {step !== 'importing' && step !== 'complete' && (
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 p-4 md:p-6 border-t border-gray-200 bg-gray-50">
+            {step === 'preview' && (
+              <>
+                <button
+                  onClick={() => setStep('select')}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={importData}
+                  className="flex-1 px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center space-x-2"
+                >
+                  <span>Import Data</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {step === 'complete' && (
+          <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={() => {
+                onImportComplete();
+                onClose();
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all"
+            >
+              Continue to Dashboard
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
