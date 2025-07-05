@@ -9,6 +9,7 @@ import {
   deleteEnhancedSymptomLog 
 } from '../utils/supabase';
 import LogSymptomPage from './LogSymptomPage';
+import ViewAllSymptomsPage from './ViewAllSymptomsPage';
 
 const SymptomsTracker = () => {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ const SymptomsTracker = () => {
   const [definitions, setDefinitions] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [showLogSymptomPage, setShowLogSymptomPage] = useState(false);
+  const [showViewAllPage, setShowViewAllPage] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const iconMap = {
@@ -73,11 +75,30 @@ const SymptomsTracker = () => {
     loadSymptomData();
   };
 
+  const handleViewAllBack = () => {
+    setShowViewAllPage(false);
+    loadSymptomData(); // Refresh data when coming back
+  };
+
+  // Show Log Symptom Page
   if (showLogSymptomPage) {
     return (
       <LogSymptomPage 
         onBack={() => setShowLogSymptomPage(false)}
         onSuccess={handleLogSymptomSuccess}
+      />
+    );
+  }
+
+  // Show View All Symptoms Page
+  if (showViewAllPage) {
+    return (
+      <ViewAllSymptomsPage 
+        onBack={handleViewAllBack}
+        onAddNew={() => {
+          setShowViewAllPage(false);
+          setShowLogSymptomPage(true);
+        }}
       />
     );
   }
@@ -148,7 +169,10 @@ const SymptomsTracker = () => {
       <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h3 className="text-lg md:text-xl font-semibold text-gray-900">Recent Symptom Logs</h3>
-          <button className="text-purple-600 hover:text-purple-700 font-medium text-sm">
+          <button 
+            onClick={() => setShowViewAllPage(true)}
+            className="text-purple-600 hover:text-purple-700 font-medium text-sm transition-colors"
+          >
             View All
           </button>
         </div>
