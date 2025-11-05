@@ -58,8 +58,8 @@ const s3Client = new S3Client({
   region: 'ap-south-1',
   endpoint: 'https://bnalfkbveluctojtnbmk.storage.supabase.co/storage/v1/s3',
   credentials: {
-    accessKeyId: '70506220fa64cd4644d54325935dfedb',
-    secretAccessKey: 'e95c26ac2afee79d0b8ed703389d66239e046726bdf566e5a4504bef75bfbaac',
+    accessKeyId: 'd6521f7e7bfa3bcee1f291f2f98bbe35',
+    secretAccessKey: 'e673fe7e3dc60a1945fa096212a67d7d4a28703bbecaba00563420ec62346764',
   },
 });
 
