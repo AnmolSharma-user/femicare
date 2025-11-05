@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowRight, ArrowLeft, Heart, Calendar, Target, User, Activity, CheckCircle, Upload, FileText, Download } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Heart, Calendar, Target, User, Activity, CheckCircle } from 'lucide-react';
 import { updateUserProfile } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import ImportDataModal from '../ImportDataModal';
 
 interface OnboardingData {
   personalInfo: {
@@ -25,10 +24,6 @@ interface OnboardingData {
     trackSymptoms: boolean;
     notifications: boolean;
   };
-  importData: {
-    wantsToImport: boolean;
-    hasImported: boolean;
-  };
 }
 
 interface OnboardingFlowProps {
@@ -39,7 +34,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     personalInfo: {
       firstName: '',
@@ -60,10 +54,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
       trackMood: true,
       trackSymptoms: true,
       notifications: true
-    },
-    importData: {
-      wantsToImport: false,
-      hasImported: false
     }
   });
 
@@ -85,12 +75,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
       title: 'Cycle Information',
       subtitle: 'Tell us about your menstrual cycle',
       icon: Calendar
-    },
-    {
-      id: 'import',
-      title: 'Import Existing Data',
-      subtitle: 'Bring your health data from other apps (optional)',
-      icon: Upload
     },
     {
       id: 'goals',
@@ -162,11 +146,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
-  };
-
-  const handleImportComplete = () => {
-    setShowImportModal(false);
-    updateData('importData', { hasImported: true });
   };
 
   const handleComplete = async () => {
@@ -372,80 +351,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
           </div>
         );
 
-      case 'import':
-        return (
-          <div className="space-y-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Import Your Existing Data</h3>
-              <p className="text-gray-600">
-                Already tracking your health with another app? Import your data to get started with your complete history.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 border-2 border-dashed border-gray-300 rounded-xl text-center hover:border-purple-400 transition-colors">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="font-medium text-gray-900 mb-2">Import from Other Apps</h4>
-                <p className="text-sm text-gray-600 mb-4">
-                  Bring your data from Clue, Flo, or other health tracking apps
-                </p>
-                <button
-                  onClick={() => {
-                    updateData('importData', { wantsToImport: true });
-                    setShowImportModal(true);
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium"
-                >
-                  Import Data
-                </button>
-              </div>
-
-              <div className="p-6 border-2 border-gray-200 rounded-xl text-center">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="font-medium text-gray-900 mb-2">Start Fresh</h4>
-                <p className="text-sm text-gray-600 mb-4">
-                  Begin tracking with FemCare using the information you've already provided
-                </p>
-                <button
-                  onClick={() => updateData('importData', { wantsToImport: false })}
-                  className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                >
-                  Continue Without Import
-                </button>
-              </div>
-            </div>
-
-            {data.importData.hasImported && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <div>
-                    <p className="font-medium text-green-900">Data imported successfully!</p>
-                    <p className="text-sm text-green-700">Your historical data is now available in FemCare.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-start space-x-3">
-                <Download className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-900 mb-2">Supported formats:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• JSON exports from Clue, Flo, and other health apps</li>
-                    <li>• CSV files from spreadsheets or other tracking tools</li>
-                    <li>• Standard health data formats</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
       case 'goals':
         return (
           <div className="space-y-6">
@@ -524,14 +429,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
                 Your personalized health tracker is ready. Start logging your data to get 
                 insights and predictions tailored just for you.
               </p>
-              {data.importData.hasImported && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-                  <p className="text-green-800 text-sm">
-                    <strong>Great!</strong> Your imported data is now integrated with FemCare. 
-                    You can view your complete health history in the dashboard.
-                  </p>
-                </div>
-              )}
               <div className="bg-green-50 rounded-xl p-4">
                 <p className="text-green-800 text-sm">
                   Remember: The more data you log, the more accurate your predictions will become.
@@ -554,8 +451,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
                data.personalInfo.dateOfBirth;
       case 'cycle':
         return data.cycleInfo.lastPeriodDate;
-      case 'import':
-        return true; // Import step is optional
       case 'goals':
         return data.healthGoals.length > 0;
       default:
@@ -643,14 +538,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
           </div>
         </div>
       </div>
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <ImportDataModal
-          onClose={() => setShowImportModal(false)}
-          onImportComplete={handleImportComplete}
-        />
-      )}
     </div>
   );
 };
