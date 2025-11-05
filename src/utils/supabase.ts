@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -18,15 +19,21 @@ if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')
   throw new Error('Invalid Supabase URL format. Expected format: https://your-project.supabase.co');
 }
 
-console.log('Supabase Configuration:', {
-  url: supabaseUrl,
-  keyLength: supabaseKey.length
-});
-
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+  },
+});
+
+// S3 Client configuration for profile pictures
+const s3Client = new S3Client({
+  forcePathStyle: true,
+  region: 'ap-south-1',
+  endpoint: 'https://bnalfkbveluctojtnbmk.storage.supabase.co/storage/v1/s3',
+  credentials: {
+    accessKeyId: 'f5831bf47e0dea4ad47d02c8fa0c646e',
+    secretAccessKey: '00082639bb74c3cac9acd10884e4a48e1125c7aa449d417aeea02933abccc2d1',
   },
 });
 
@@ -53,7 +60,7 @@ const handleSupabaseError = (operation: string, error: any) => {
   return error;
 };
 
-// Profile picture helper functions using Supabase Storage
+// Profile picture helper functions using S3
 export const uploadProfilePicture = async (file: File, userEmail: string) => {
   try {
     // Validate file type
@@ -68,30 +75,27 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
       throw new Error('File size too large. Maximum size is 5MB.');
     }
 
-    // Get current user's ID
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Create a unique filename using user ID and timestamp
+    // Create a unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    const fileName = `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${fileExt}`;
+    
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    
+    // Upload file to the profile-picture bucket using S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: 'profile-picture',
+      Key: fileName,
+      Body: buffer,
+      ContentType: file.type,
+      CacheControl: '3600',
+    });
 
-    // Upload file to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('profile-picture')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: true
-      });
+    await s3Client.send(uploadCommand);
 
-    if (error) throw error;
-
-    // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('profile-picture')
-      .getPublicUrl(fileName);
+    // Construct the public URL
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/profile-picture/${fileName}`;
 
     return { data: { path: fileName, publicUrl }, error: null };
   } catch (error) {
@@ -102,30 +106,27 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
 
 export const getProfilePictureUrl = async (userEmail: string) => {
   try {
-    // Get current user's ID
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('User not authenticated');
-    }
+    // List files for this user using S3
+    const listCommand = new ListObjectsV2Command({
+      Bucket: 'profile-picture',
+      Prefix: userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+    });
 
-    // List files in user's folder
-    const { data, error } = await supabase.storage
-      .from('profile-picture')
-      .list(user.id);
+    const response = await s3Client.send(listCommand);
 
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      // Sort by created_at to get the most recent file
-      const sortedFiles = data.sort((a, b) => {
-        return b.created_at.localeCompare(a.created_at);
+    if (response.Contents && response.Contents.length > 0) {
+      // Sort by last modified date to get the most recent file
+      const sortedFiles = response.Contents.sort((a, b) => {
+        const dateA = a.LastModified ? new Date(a.LastModified).getTime() : 0;
+        const dateB = b.LastModified ? new Date(b.LastModified).getTime() : 0;
+        return dateB - dateA;
       });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-picture')
-        .getPublicUrl(`${user.id}/${sortedFiles[0].name}`);
-
-      return { data: publicUrl, error: null };
+      const mostRecentFile = sortedFiles[0];
+      if (mostRecentFile.Key) {
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/profile-picture/${mostRecentFile.Key}`;
+        return { data: publicUrl, error: null };
+      }
     }
 
     return { data: null, error: null };
@@ -137,26 +138,25 @@ export const getProfilePictureUrl = async (userEmail: string) => {
 
 export const deleteProfilePicture = async (userEmail: string) => {
   try {
-    // Get current user's ID
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('User not authenticated');
-    }
+    // List files for this user using S3
+    const listCommand = new ListObjectsV2Command({
+      Bucket: 'profile-picture',
+      Prefix: userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+    });
 
-    // List files in user's folder
-    const { data: files, error: listError } = await supabase.storage
-      .from('profile-picture')
-      .list(user.id);
+    const response = await s3Client.send(listCommand);
 
-    if (listError) throw listError;
-
-    if (files && files.length > 0) {
-      // Delete all files in the user's folder
-      const { error: deleteError } = await supabase.storage
-        .from('profile-picture')
-        .remove(files.map(file => `${user.id}/${file.name}`));
-
-      if (deleteError) throw deleteError;
+    if (response.Contents && response.Contents.length > 0) {
+      // Delete all files for this user
+      for (const file of response.Contents) {
+        if (file.Key) {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: 'profile-picture',
+            Key: file.Key,
+          });
+          await s3Client.send(deleteCommand);
+        }
+      }
     }
 
     return { error: null };
@@ -225,17 +225,15 @@ export const getUserProfile = async (userId: string) => {
 
 export const updateUserProfile = async (userId: string, updates: any) => {
   try {
-    // Get the current user to ensure we have the email
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
       return { data: null, error: handleSupabaseError('updateUserProfile', userError || new Error('User not authenticated')) };
     }
 
-    // Ensure we're updating the correct user and include updated_at and email
     const updateData = {
       ...updates,
-      email: user.email, // Always include the email from the authenticated user
+      email: user.email,
       updated_at: new Date().toISOString()
     };
 
@@ -257,54 +255,4 @@ export const updateUserProfile = async (userId: string, updates: any) => {
   }
 };
 
-export const getUserSettings = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    return { data, error: error ? handleSupabaseError('getUserSettings', error) : null };
-  } catch (error) {
-    return { data: null, error: handleSupabaseError('getUserSettings', error) };
-  }
-};
-
-export const updateUserSettings = async (userId: string, settings: any) => {
-  try {
-    const { data, error } = await supabase
-      .from('user_settings')
-      .upsert(
-        { user_id: userId, ...settings, updated_at: new Date().toISOString() },
-        { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        }
-      )
-      .select()
-      .single();
-    return { data, error: error ? handleSupabaseError('updateUserSettings', error) : null };
-  } catch (error) {
-    return { data: null, error: handleSupabaseError('updateUserSettings', error) };
-  }
-};
-
-// Add the rest of your database helper functions here...
-// (The remaining functions from your original file can stay exactly the same)
-
-export const refreshUserData = async (userId: string) => {
-  try {
-    const [profile, settings] = await Promise.all([
-      getUserProfile(userId),
-      getUserSettings(userId)
-    ]);
-
-    return {
-      profile: profile.data,
-      settings: settings.data,
-      error: null
-    };
-  } catch (error) {
-    return { data: null, error: handleSupabaseError('refreshUserData', error) };
-  }
-};
+// Add your other functions here...
