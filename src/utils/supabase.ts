@@ -56,10 +56,10 @@ export const testSupabaseConnection = async () => {
 const s3Client = new S3Client({
   forcePathStyle: true,
   region: 'ap-south-1',
-  endpoint: 'https://vbrvgacnjyxkrfclixbm.supabase.co/storage/v1/s3',
+  endpoint: 'https://bnalfkbveluctojtnbmk.storage.supabase.co/storage/v1/s3',
   credentials: {
-    accessKeyId: '349c240eef446eb597f6b15a8be98780',
-    secretAccessKey: '72aeb5fd5215c07ee601c0191afe091eab17b376fb2dbfc98c798a50b8e92218',
+    accessKeyId: '70506220fa64cd4644d54325935dfedb',
+    secretAccessKey: 'e95c26ac2afee79d0b8ed703389d66239e046726bdf566e5a4504bef75bfbaac',
   },
 });
 
