@@ -18,6 +18,11 @@ if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')
   throw new Error('Invalid Supabase URL format. Expected format: https://your-project.supabase.co');
 }
 
+console.log('Supabase Configuration:', {
+  url: supabaseUrl,
+  keyLength: supabaseKey.length
+});
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
@@ -63,10 +68,16 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
       throw new Error('File size too large. Maximum size is 5MB.');
     }
 
-    // Create a unique filename
+    // Get current user's ID
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Create a unique filename using user ID and timestamp
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${fileExt}`;
-    
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
     // Upload file to Supabase Storage
     const { data, error } = await supabase.storage
       .from('profile-picture')
@@ -91,9 +102,16 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
 
 export const getProfilePictureUrl = async (userEmail: string) => {
   try {
+    // Get current user's ID
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // List files in user's folder
     const { data, error } = await supabase.storage
       .from('profile-picture')
-      .list(userEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      .list(user.id);
 
     if (error) throw error;
 
@@ -105,7 +123,7 @@ export const getProfilePictureUrl = async (userEmail: string) => {
 
       const { data: { publicUrl } } = supabase.storage
         .from('profile-picture')
-        .getPublicUrl(sortedFiles[0].name);
+        .getPublicUrl(`${user.id}/${sortedFiles[0].name}`);
 
       return { data: publicUrl, error: null };
     }
@@ -119,16 +137,24 @@ export const getProfilePictureUrl = async (userEmail: string) => {
 
 export const deleteProfilePicture = async (userEmail: string) => {
   try {
+    // Get current user's ID
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // List files in user's folder
     const { data: files, error: listError } = await supabase.storage
       .from('profile-picture')
-      .list(userEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      .list(user.id);
 
     if (listError) throw listError;
 
     if (files && files.length > 0) {
+      // Delete all files in the user's folder
       const { error: deleteError } = await supabase.storage
         .from('profile-picture')
-        .remove(files.map(file => `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}/${file.name}`));
+        .remove(files.map(file => `${user.id}/${file.name}`));
 
       if (deleteError) throw deleteError;
     }
@@ -183,5 +209,102 @@ export const getCurrentUser = async () => {
   }
 };
 
-// The rest of your database helper functions remain the same...
-// (I'm not including them here as they don't need modifications and are working correctly)
+// Database helper functions
+export const getUserProfile = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return { data, error: error ? handleSupabaseError('getUserProfile', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getUserProfile', error) };
+  }
+};
+
+export const updateUserProfile = async (userId: string, updates: any) => {
+  try {
+    // Get the current user to ensure we have the email
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return { data: null, error: handleSupabaseError('updateUserProfile', userError || new Error('User not authenticated')) };
+    }
+
+    // Ensure we're updating the correct user and include updated_at and email
+    const updateData = {
+      ...updates,
+      email: user.email, // Always include the email from the authenticated user
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert(
+        { id: userId, ...updateData },
+        { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        }
+      )
+      .select()
+      .single();
+    
+    return { data, error: error ? handleSupabaseError('updateUserProfile', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateUserProfile', error) };
+  }
+};
+
+export const getUserSettings = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return { data, error: error ? handleSupabaseError('getUserSettings', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('getUserSettings', error) };
+  }
+};
+
+export const updateUserSettings = async (userId: string, settings: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .upsert(
+        { user_id: userId, ...settings, updated_at: new Date().toISOString() },
+        { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        }
+      )
+      .select()
+      .single();
+    return { data, error: error ? handleSupabaseError('updateUserSettings', error) : null };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('updateUserSettings', error) };
+  }
+};
+
+// Add the rest of your database helper functions here...
+// (The remaining functions from your original file can stay exactly the same)
+
+export const refreshUserData = async (userId: string) => {
+  try {
+    const [profile, settings] = await Promise.all([
+      getUserProfile(userId),
+      getUserSettings(userId)
+    ]);
+
+    return {
+      profile: profile.data,
+      settings: settings.data,
+      error: null
+    };
+  } catch (error) {
+    return { data: null, error: handleSupabaseError('refreshUserData', error) };
+  }
+};
