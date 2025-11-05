@@ -152,7 +152,7 @@ export const uploadProfilePicture = async (file: File, userEmail: string) => {
     await s3Client.send(uploadCommand);
 
     // Construct the public URL
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/profile-picture/${fileName}`;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/user_profiles/${fileName}`;
 
     return { data: { path: fileName, publicUrl }, error: null };
   } catch (error) {
