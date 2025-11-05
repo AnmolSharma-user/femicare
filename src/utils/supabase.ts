@@ -55,7 +55,7 @@ export const testSupabaseConnection = async () => {
 // S3 Client configuration for profile pictures
 const s3Client = new S3Client({
   forcePathStyle: true,
-  region: 'ap-south-1',
+  region: 'ap-southeast-2',
   endpoint: 'https://vbrvgacnjyxkrfclixbm.supabase.co/storage/v1/s3',
   credentials: {
     accessKeyId: '349c240eef446eb597f6b15a8be98780',
